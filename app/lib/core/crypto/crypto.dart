@@ -2,16 +2,16 @@
 // ever shifts, this is the ONLY file that needs touching.
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:sodium_libs/sodium_libs.dart';
+import 'package:sodium_libs/sodium_libs_sumo.dart';
 
 class Crypto {
   Crypto._(this._s);
-  final Sodium _s;
+  final SodiumSumo _s;
   static Crypto? _instance;
   static Crypto get I => _instance ?? (throw StateError('Crypto not initialised'));
 
   static Future<void> init() async {
-    _instance ??= Crypto._(await SodiumInit.init());
+    _instance ??= Crypto._(await SodiumSumoInit.init());
   }
 
   // ---- helpers -------------------------------------------------------------

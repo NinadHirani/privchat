@@ -70,7 +70,8 @@ def android():
     root_groovy = p("android", "build.gradle")
     subproj_kts = """
 subprojects {
-    afterEvaluate {
+    val project = this
+    val applySdk = {
         val extension = project.extensions.findByName("android")
         if (extension != null) {
             try {
@@ -84,16 +85,30 @@ subprojects {
             }
         }
     }
+    project.plugins.withId("com.android.library") { applySdk() }
+    project.plugins.withId("com.android.application") { applySdk() }
+    if (project.state.executed) {
+        applySdk()
+    } else {
+        project.afterEvaluate { applySdk() }
+    }
 }
 """
     subproj_groovy = """
-subprojects {
-    afterEvaluate { project ->
+subprojects { project ->
+    def applySdk = {
         if (project.hasProperty("android")) {
-            project.android {
-                compileSdkVersion 34
-            }
+            try {
+                project.android.compileSdkVersion 34
+            } catch (Exception ignored) {}
         }
+    }
+    project.plugins.withId("com.android.library") { applySdk() }
+    project.plugins.withId("com.android.application") { applySdk() }
+    if (project.state.executed) {
+        applySdk()
+    } else {
+        project.afterEvaluate { applySdk() }
     }
 }
 """

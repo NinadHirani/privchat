@@ -81,15 +81,23 @@ INFO_KEYS = {
 
 def ios():
     if not os.path.isdir(p("ios", "Runner")):
-        sys.exit("ios/Runner missing — run `flutter create ...` first.")
+        say("ios/Runner missing — skipping iOS setup. Run `flutter create ...` if needed.")
+        return
     print("iOS:")
-    shutil.copy2(os.path.join(OVL, "ios", "Runner", "AppDelegate.swift"), p("ios", "Runner", "AppDelegate.swift")); say("overlay AppDelegate.swift (+ Multipeer)")
-    shutil.copy2(os.path.join(OVL, "ios", "Podfile"), p("ios", "Podfile")); say("overlay Podfile (iOS 15, permission macros)")
+    if os.path.exists(os.path.join(OVL, "ios", "Runner", "AppDelegate.swift")):
+        shutil.copy2(os.path.join(OVL, "ios", "Runner", "AppDelegate.swift"), p("ios", "Runner", "AppDelegate.swift"))
+        say("overlay AppDelegate.swift (+ Multipeer)")
+    if os.path.exists(os.path.join(OVL, "ios", "Podfile")):
+        shutil.copy2(os.path.join(OVL, "ios", "Podfile"), p("ios", "Podfile"))
+        say("overlay Podfile (iOS 15, permission macros)")
     plist = p("ios", "Runner", "Info.plist")
-    with open(plist, "rb") as f: d = plistlib.load(f)
-    d.update(INFO_KEYS)
-    with open(plist, "wb") as f: plistlib.dump(d, f)
-    say("merged Info.plist permissions / Bonjour services / background modes")
+    if os.path.exists(plist):
+        with open(plist, "rb") as f: d = plistlib.load(f)
+        d.update(INFO_KEYS)
+        with open(plist, "wb") as f: plistlib.dump(d, f)
+        say("merged Info.plist permissions / Bonjour services / background modes")
+    else:
+        say("WARNING: ios/Runner/Info.plist not found, skipping plist patch")
     pbx = p("ios", "Runner.xcodeproj", "project.pbxproj")
     if os.path.exists(pbx):
         s = open(pbx).read()
@@ -103,5 +111,11 @@ def cleanup():
     if os.path.exists(wt): os.remove(wt); say("removed template test/widget_test.dart")
 
 if __name__ == "__main__":
-    android(); ios(); cleanup()
+    args = sys.argv[1:]
+    if "--android-only" in args:
+        android(); cleanup()
+    elif "--ios-only" in args:
+        ios(); cleanup()
+    else:
+        android(); ios(); cleanup()
     print("\nDone. Next:  flutter pub get  &&  flutter test  &&  flutter run")

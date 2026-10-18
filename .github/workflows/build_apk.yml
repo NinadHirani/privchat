@@ -1,0 +1,81 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Build Android Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Initialize platform templates and overlay
+        run: |
+          cd app
+          flutter create --org app.privchat --project-name privchat --platforms android,ios .
+          python3 tool/setup_platforms.py
+          flutter pub get
+
+      - name: Build Android APK
+        run: |
+          cd app
+          flutter build apk --release
+
+      - name: Upload APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: privchat-android-apk
+          path: app/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+
+      - name: Create or Update GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="v1.0.0"
+          APK_PATH="app/build/app/outputs/flutter-apk/app-release.apk"
+          
+          # Create or update release and attach APK
+          gh release view "$TAG_NAME" || gh release create "$TAG_NAME" \
+            --title "PrivChat $TAG_NAME (Android APK)" \
+            --notes "### PrivChat Android Release 🚀
+          
+          Serverless, offline, end-to-end encrypted messenger.
+          
+          **Download & Install:**
+          - Download the \`app-release.apk\` asset below
+          - Open it on your Android device to install
+          
+          **Features:**
+          - 1:1 and Group chats
+          - Local Wi-Fi / hotspot / Wi-Fi Direct discovery
+          - End-to-end encrypted (libsodium)
+          - Offline outbox and safety numbers" \
+            --latest
+            
+          gh release upload "$TAG_NAME" "$APK_PATH#PrivChat-release.apk" --clobber

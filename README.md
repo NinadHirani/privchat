@@ -12,6 +12,12 @@ disappearing messages · safety-number / QR verification · biometric app lock �
 encrypted database (SQLCipher) + encrypted media vault · screenshot blocking (Android) ·
 store-and-forward outbox (messages go out automatically when the contact comes back in range).
 
+## Download Android APK
+Directly download and install the latest Android APK from GitHub Releases:
+👉 **[Download PrivChat APK](https://github.com/NinadHirani/privchat/releases/latest)**
+
+No setup or compilation required on your phone. Just download `PrivChat-release.apk` and tap install.
+
 ## Build (needs Flutter ≥ 3.22; Android Studio; Xcode on a Mac for iOS)
 ```bash
 cd app

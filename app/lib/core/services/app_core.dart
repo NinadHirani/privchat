@@ -10,6 +10,7 @@ import '../storage/db.dart';
 import '../storage/media_store.dart';
 import '../storage/secure_store.dart';
 import '../../models/models.dart';
+import '../../ui/theme_manager.dart';
 import 'call_service.dart';
 import 'group_service.dart';
 import 'message_service.dart';
@@ -45,7 +46,7 @@ class AppCore extends ChangeNotifier {
   }
 
   /// Boot with the stored identity, or create one when [newName] is given, or restore from [restoreSeed].
-  static Future<AppCore> boot({String? newName, Uint8List? restoreSeed}) async {
+  static Future<AppCore> boot({String? newName, Uint8List? restoreSeed, String? phone}) async {
     if (_i != null) return _i!;
     await Crypto.init();
     final c = AppCore._();
@@ -59,6 +60,10 @@ class AppCore extends ChangeNotifier {
     c.identity = Identity.fromSeed(seed);
     c.displayName = (await SecureStore.displayName()) ?? newName ?? 'Me';
     c.db = await AppDb.open(await SecureStore.dbKey());
+    if (phone != null && phone.isNotEmpty) {
+      c.db.kvSet('user_phone', phone);
+    }
+    ThemeManager.I.init();
     await MediaStore.init();
     await MediaStore.wipeCache();
     c.about = c.db.kvGet('about') ?? c.about;

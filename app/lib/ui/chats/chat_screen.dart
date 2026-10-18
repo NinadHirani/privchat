@@ -14,8 +14,11 @@ import '../contacts/contact_info_screen.dart';
 import '../groups/group_info_screen.dart';
 import '../location/location_screen.dart';
 import '../media/media_utils.dart';
+import '../settings/appearance_screen.dart';
 import '../theme.dart';
+import '../theme_manager.dart';
 import '../widgets/common.dart';
+import '../widgets/wallpaper_view.dart';
 import 'forward_screen.dart';
 import 'message_bubble.dart';
 
@@ -342,7 +345,7 @@ class _ChatScreenState extends State<ChatScreen> {
   // ------------------------------------------------------------------ build
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-        listenable: core,
+        listenable: Listenable.merge([core, ThemeManager.I]),
         builder: (context, _) {
           final c = core.db.conversation(widget.convId);
           if (c == null) return const Scaffold(body: Center(child: Text('Chat deleted')));
@@ -380,6 +383,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   onSelected: (v) async {
                     switch (v) {
                       case 'info': _openInfo(); break;
+                      case 'wallpaper':
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => AppearanceScreen(convId: widget.convId, convTitle: title)));
+                        break;
                       case 'disappear': _disappearing(); break;
                       case 'mute':
                         core.db.setConvFlag(c.id, 'muted', c.muted ? 0 : 1);
@@ -395,6 +401,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   },
                   itemBuilder: (_) => [
                     PopupMenuItem(value: 'info', child: Text(c.isGroup ? 'Group info' : 'Contact info')),
+                    const PopupMenuItem(value: 'wallpaper', child: Text('Wallpaper & theme')),
                     const PopupMenuItem(value: 'disappear', child: Text('Disappearing messages')),
                     PopupMenuItem(value: 'mute', child: Text(c.muted ? 'Unmute notifications' : 'Mute notifications')),
                     const PopupMenuItem(value: 'clear', child: Text('Clear chat')),
@@ -402,8 +409,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ],
             ),
-            body: Container(
-              color: dark ? AppTheme.chatBgDark : AppTheme.chatBg,
+            body: WallpaperView(
+              config: ThemeManager.I.getWallpaperForConv(widget.convId),
+              isDark: dark,
               child: Column(children: [
                 if (peer != null && peer.added == 0) _strangerBanner(peer),
                 Expanded(

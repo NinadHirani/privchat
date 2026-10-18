@@ -49,3 +49,7 @@ app/ios/Flutter/app.framework
 .idea/
 *.iml
 .vscode/
+
+# Downloads / local APK builds
+downloads/
+*.apk

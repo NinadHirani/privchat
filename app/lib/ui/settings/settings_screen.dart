@@ -8,6 +8,7 @@ import '../../core/storage/secure_store.dart';
 import '../media/media_utils.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'appearance_screen.dart';
 import 'network_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -100,6 +101,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             if (core.avatar != null)
               TextButton(onPressed: () => core.updateProfile(clearAvatar: true), child: const Text('Remove profile photo')),
+            const Divider(),
+            _section('Appearance & Customization'),
+            ListTile(
+              leading: const Icon(Icons.palette_outlined),
+              title: const Text('Chat Appearance & Wallpapers'),
+              subtitle: const Text('Cadet grey, mustard bubbles & custom wallpapers'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AppearanceScreen())),
+            ),
             const Divider(),
             _section('Privacy'),
             SwitchListTile(

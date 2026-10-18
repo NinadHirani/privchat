@@ -12,6 +12,7 @@ import '../../models/models.dart';
 import '../location/location_screen.dart';
 import '../media/media_viewer.dart';
 import '../theme.dart';
+import '../theme_manager.dart';
 import '../widgets/common.dart';
 
 /// In-memory only cache of decrypted images (never written to disk).
@@ -48,25 +49,27 @@ class MessageBubble extends StatelessWidget {
       );
     }
 
-    final bg = mine ? (dark ? AppTheme.bubbleOutDark : AppTheme.bubbleOut) : (dark ? AppTheme.bubbleInDark : AppTheme.bubbleIn);
+    final tm = ThemeManager.I;
+    final bg = mine ? tm.myBubbleColor : tm.peerBubbleColor;
+    final textColor = mine ? tm.myTextColor : tm.peerTextColor;
     final reactions = m.reactions.values.toSet().join();
     return GestureDetector(
       onLongPress: onLongPress,
       child: Container(
-        color: selected ? AppTheme.teal.withOpacity(.18) : Colors.transparent,
+        color: selected ? AppTheme.amberAccent.withOpacity(.18) : Colors.transparent,
         padding: EdgeInsets.only(left: mine ? 56 : 8, right: mine ? 8 : 56, top: 2, bottom: reactions.isEmpty ? 2 : 14),
         alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
         child: Stack(clipBehavior: Clip.none, children: [
           Container(
             constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * .78),
-            padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
+            padding: const EdgeInsets.fromLTRB(10, 7, 10, 5),
             decoration: BoxDecoration(
               color: bg,
               borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(10), topRight: const Radius.circular(10),
-                bottomLeft: Radius.circular(mine ? 10 : 2), bottomRight: Radius.circular(mine ? 2 : 10),
+                topLeft: const Radius.circular(14), topRight: const Radius.circular(14),
+                bottomLeft: Radius.circular(mine ? 14 : 3), bottomRight: Radius.circular(mine ? 3 : 14),
               ),
-              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 1, offset: Offset(0, 1))],
+              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1))],
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
               if (isGroup && !mine)
@@ -77,16 +80,16 @@ class MessageBubble extends StatelessWidget {
                           color: Colors.primaries[m.senderId.hashCode.abs() % Colors.primaries.length])),
                 ),
               if (m.body['forwarded'] == true)
-                const Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.shortcut, size: 14, color: Colors.grey),
-                  Text(' Forwarded', style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey)),
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.shortcut, size: 14, color: textColor.withOpacity(0.6)),
+                  Text(' Forwarded', style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: textColor.withOpacity(0.6))),
                 ]),
               if (m.replyTo != null) _ReplyQuote(id: m.replyTo!, onTap: onReplyTap),
-              _content(context, mine),
+              _content(context, mine, textColor),
               const SizedBox(height: 2),
               Row(mainAxisSize: MainAxisSize.min, children: [
-                if (m.expiresAt != null) const Icon(Icons.timer_outlined, size: 12, color: Colors.grey),
-                Text(' ${fmtTime(m.ts)}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                if (m.expiresAt != null) Icon(Icons.timer_outlined, size: 12, color: textColor.withOpacity(0.6)),
+                Text(' ${fmtTime(m.ts)}', style: TextStyle(fontSize: 11, color: textColor.withOpacity(0.65))),
                 if (mine && m.kind != MsgKind.call) ...[const SizedBox(width: 3), _Tick(status: m.status)],
               ]),
             ]),
@@ -106,7 +109,7 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
-  Widget _content(BuildContext context, bool mine) {
+  Widget _content(BuildContext context, bool mine, Color textColor) {
     final core = AppCore.I;
     final att = m.attachmentId == null ? null : core.db.attachment(m.attachmentId!);
     switch (m.kind) {
@@ -117,13 +120,13 @@ class MessageBubble extends StatelessWidget {
               style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
         ]);
       case MsgKind.image:
-        return _withCaption(_ImageBody(att: att));
+        return _withCaption(_ImageBody(att: att), textColor);
       case MsgKind.video:
-        return _withCaption(_VideoBody(att: att));
+        return _withCaption(_VideoBody(att: att), textColor);
       case MsgKind.audio:
         return _AudioBody(att: att, durationMs: (m.body['duration'] as num?)?.toInt());
       case MsgKind.doc:
-        return _withCaption(_DocBody(att: att));
+        return _withCaption(_DocBody(att: att), textColor);
       case MsgKind.location:
       case MsgKind.liveLocation:
         return _LocationBody(m: m);
@@ -133,22 +136,23 @@ class MessageBubble extends StatelessWidget {
         final missed = m.body['missed'] == true, video = m.body['video'] == true;
         final out = m.body['outgoing'] == true;
         return Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(video ? Icons.videocam : Icons.call, color: missed ? Colors.red : AppTheme.teal, size: 20),
+          Icon(video ? Icons.videocam : Icons.call, color: missed ? Colors.red : AppTheme.amberAccent, size: 20),
           const SizedBox(width: 8),
           Text(missed
               ? (out ? 'No answer' : 'Missed ${video ? 'video' : 'voice'} call')
-              : '${video ? 'Video' : 'Voice'} call · ${fmtDuration((m.body['duration'] as num?)?.toInt() ?? 0)}'),
+              : '${video ? 'Video' : 'Voice'} call · ${fmtDuration((m.body['duration'] as num?)?.toInt() ?? 0)}',
+              style: TextStyle(color: textColor)),
         ]);
       default:
-        return SelectableText(m.text, style: const TextStyle(fontSize: 15.5));
+        return SelectableText(m.text, style: TextStyle(fontSize: 15.5, color: textColor));
     }
   }
 
-  Widget _withCaption(Widget media) {
+  Widget _withCaption(Widget media, Color textColor) {
     if (m.text.isEmpty) return media;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
       media,
-      Padding(padding: const EdgeInsets.only(top: 4), child: Text(m.text, style: const TextStyle(fontSize: 15))),
+      Padding(padding: const EdgeInsets.only(top: 4), child: Text(m.text, style: TextStyle(fontSize: 15, color: textColor))),
     ]);
   }
 }

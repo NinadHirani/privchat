@@ -12,15 +12,62 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _name = TextEditingController();
-  int _page = 0;
+  final _phone = TextEditingController();
+  final _otp = TextEditingController();
+
+  int _step = 0; // 0: Welcome slides, 1: Phone input, 2: OTP, 3: Profile setup
+  int _slidePage = 0;
   bool _busy = false;
+  String _confirmedPhone = '';
+
+  Future<void> _requestOtp() async {
+    final raw = _phone.text.trim();
+    if (raw.isEmpty || raw.length < 7) {
+      return toast(context, 'Please enter a valid phone number with country code');
+    }
+    setState(() {
+      _busy = true;
+      _confirmedPhone = raw.startsWith('+') ? raw : '+$raw';
+    });
+
+    await Future.delayed(const Duration(milliseconds: 700));
+    if (mounted) {
+      setState(() {
+        _busy = false;
+        _step = 2; // move to OTP step
+      });
+      toast(context, 'Verification code sent to $_confirmedPhone');
+    }
+  }
+
+  void _skipPhone() {
+    setState(() {
+      _confirmedPhone = '';
+      _step = 3; // jump straight to profile name
+    });
+  }
+
+  Future<void> _verifyOtp() async {
+    final code = _otp.text.trim();
+    if (code.length != 6) {
+      return toast(context, 'Please enter the 6-digit code');
+    }
+    setState(() => _busy = true);
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (mounted) {
+      setState(() {
+        _busy = false;
+        _step = 3; // move to profile setup
+      });
+    }
+  }
 
   Future<void> _create() async {
     final n = _name.text.trim();
     if (n.isEmpty) return toast(context, 'Enter a name your friends will recognise');
     setState(() => _busy = true);
     try {
-      await AppCore.boot(newName: n);
+      await AppCore.boot(newName: n, phone: _confirmedPhone);
       widget.onDone();
     } catch (e) {
       if (mounted) toast(context, 'Setup failed: $e');
@@ -50,72 +97,241 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = [
-      _info(Icons.lock_outline, 'Private by design',
-          'No phone number. No email. No account. No servers.\nYour identity is a key that is created on this phone and never leaves it.'),
-      _info(Icons.wifi_tethering, 'Works without internet',
-          'Chat, share photos, videos, documents and location, and make voice & video calls with anyone on the same Wi-Fi, a phone hotspot, or Wi-Fi Direct — even with no internet at all.'),
-      _info(Icons.verified_user_outlined, 'End-to-end encrypted',
-          'Everything is encrypted with modern cryptography (X25519, Ed25519, XChaCha20-Poly1305). Scan a friend\'s QR code in person to verify nobody is in the middle.'),
-    ];
     return Scaffold(
       body: SafeArea(
-        child: _page < pages.length
-            ? Column(children: [
-                Expanded(child: pages[_page]),
-                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  for (var i = 0; i <= pages.length; i++)
-                    Container(
-                      margin: const EdgeInsets.all(4), width: 8, height: 8,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: i == _page ? AppTheme.teal : Colors.grey.shade400),
-                    ),
-                ]),
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(onPressed: () => setState(() => _page++), child: const Text('Next')),
-                  ),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          child: _buildCurrentStep(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCurrentStep() {
+    switch (_step) {
+      case 0:
+        return _buildWelcomeSlides();
+      case 1:
+        return _buildPhoneStep();
+      case 2:
+        return _buildOtpStep();
+      case 3:
+      default:
+        return _buildProfileStep();
+    }
+  }
+
+  Widget _buildWelcomeSlides() {
+    final pages = [
+      _info(Icons.lock_outline, 'Private by design',
+          'End-to-end encrypted with libsodium. Serverless on LAN, with zero-knowledge relay over the internet. Nobody can read your messages or listen to your calls.'),
+      _info(Icons.contacts, 'Talk to Google Contacts',
+          'Verify your phone number once like WhatsApp. PrivChat discovers which of your saved Google contacts are on PrivChat and lets you invite others with 1 tap.'),
+      _info(Icons.wifi_tethering, 'Works offline & online',
+          'Direct P2P over Wi-Fi, hotspot, or Wi-Fi Direct with zero internet — and seamless cloud relay when you are across the city or world.'),
+    ];
+
+    return Column(
+      key: const ValueKey('slides'),
+      children: [
+        Expanded(child: pages[_slidePage]),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var i = 0; i < pages.length; i++)
+              Container(
+                margin: const EdgeInsets.all(4),
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: i == _slidePage ? AppTheme.amberAccent : Colors.grey.shade400,
                 ),
-              ])
-            : Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  const SizedBox(height: 40),
-                  const Icon(Icons.person_outline, size: 72, color: AppTheme.teal),
-                  const SizedBox(height: 16),
-                  const Text('Your profile', textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  const Text('Only shown to people you add.', textAlign: TextAlign.center),
-                  const SizedBox(height: 24),
-                  TextField(
-                    controller: _name, maxLength: 40, autofocus: true,
-                    decoration: const InputDecoration(labelText: 'Your name', border: OutlineInputBorder()),
-                    onSubmitted: (_) => _create(),
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: _busy ? null : _create,
-                    child: _busy
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('Create my private identity'),
-                  ),
-                  const Spacer(),
-                  TextButton(onPressed: _busy ? null : _restore, child: const Text('I have a recovery key')),
-                ]),
               ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.all(24),
+          child: SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.mustardBrown,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                if (_slidePage < pages.length - 1) {
+                  setState(() => _slidePage++);
+                } else {
+                  setState(() => _step = 1);
+                }
+              },
+              child: Text(_slidePage < pages.length - 1 ? 'Next' : 'Get Started'),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhoneStep() {
+    return Padding(
+      key: const ValueKey('phone'),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 32),
+          const Icon(Icons.phone_android, size: 64, color: AppTheme.mustardBrown),
+          const SizedBox(height: 16),
+          const Text('Enter your phone number',
+              textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text(
+            'PrivChat will verify your number so your Google Contacts can find and message you.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
+          ),
+          const SizedBox(height: 28),
+          TextField(
+            controller: _phone,
+            keyboardType: TextInputType.phone,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Phone number',
+              hintText: '+1 234 567 8900',
+              prefixIcon: Icon(Icons.dialpad),
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (_) => _requestOtp(),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.mustardBrown, minimumSize: const Size.fromHeight(48)),
+            onPressed: _busy ? null : _requestOtp,
+            child: _busy
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text('Send Verification Code'),
+          ),
+          const Spacer(),
+          TextButton(
+            onPressed: _skipPhone,
+            child: const Text('Skip (Use offline identity only)', style: TextStyle(color: Colors.grey)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOtpStep() {
+    return Padding(
+      key: const ValueKey('otp'),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 32),
+          const Icon(Icons.sms_outlined, size: 64, color: AppTheme.mustardBrown),
+          const SizedBox(height: 16),
+          const Text('Verify phone number',
+              textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text(
+            'Enter the 6-digit code sent to $_confirmedPhone',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.grey, fontSize: 13),
+          ),
+          const SizedBox(height: 28),
+          TextField(
+            controller: _otp,
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            autofocus: true,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 24, letterSpacing: 8, fontWeight: FontWeight.bold),
+            decoration: const InputDecoration(
+              hintText: '123456',
+              counterText: '',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (_) => _verifyOtp(),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.mustardBrown, minimumSize: const Size.fromHeight(48)),
+            onPressed: _busy ? null : _verifyOtp,
+            child: _busy
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text('Verify & Continue'),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () => setState(() => _step = 1),
+            child: const Text('Wrong number? Change'),
+          ),
+          const Spacer(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileStep() {
+    return Padding(
+      key: const ValueKey('profile'),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 32),
+          const CircleAvatar(
+            radius: 36,
+            backgroundColor: AppTheme.mustardBrown,
+            child: Icon(Icons.person, size: 40, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          const Text('Your Profile', textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text('Choose the name your contacts will see.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+          const SizedBox(height: 28),
+          TextField(
+            controller: _name,
+            maxLength: 40,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Your display name',
+              hintText: 'e.g. Alex',
+              prefixIcon: Icon(Icons.badge_outlined),
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (_) => _create(),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.mustardBrown, minimumSize: const Size.fromHeight(48)),
+            onPressed: _busy ? null : _create,
+            child: _busy
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text('Start Chatting'),
+          ),
+          const Spacer(),
+          TextButton(onPressed: _busy ? null : _restore, child: const Text('I have a recovery key')),
+        ],
       ),
     );
   }
 
   Widget _info(IconData icon, String title, String body) => Padding(
         padding: const EdgeInsets.all(32),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon, size: 96, color: AppTheme.teal),
-          const SizedBox(height: 32),
-          Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          Text(body, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, height: 1.4)),
-        ]),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 96, color: AppTheme.mustardBrown),
+            const SizedBox(height: 32),
+            Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            Text(body, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, height: 1.4)),
+          ],
+        ),
       );
 }

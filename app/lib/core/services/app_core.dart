@@ -95,9 +95,11 @@ class AppCore extends ChangeNotifier {
       if (c.db.purgeExpired() > 0) c.notify();
     });
     c.db.purgeExpired();
-    try {
-      await _bg.invokeMethod('start'); // Android foreground service + multicast lock
-    } catch (_) {}
+    if (c.backgroundStandby) {
+      try {
+        await _bg.invokeMethod('start'); // Android foreground service + multicast lock
+      } catch (_) {}
+    }
     return c;
   }
 
@@ -135,6 +137,14 @@ class AppCore extends ChangeNotifier {
 
   bool get readReceipts => flag('read_receipts', def: true);
   bool get contactsOnly => flag('contacts_only', def: false);
+  bool get backgroundStandby => flag('bg_standby', def: true);
+
+  Future<void> setBackgroundStandby(bool enabled) async {
+    setFlag('bg_standby', enabled);
+    try {
+      await _bg.invokeMethod(enabled ? 'start' : 'stop');
+    } catch (_) {}
+  }
 
   // ---- profile ----
   Future<void> updateProfile({String? name, Uint8List? avatar, String? about, bool clearAvatar = false}) async {

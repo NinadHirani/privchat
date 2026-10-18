@@ -7,6 +7,8 @@ class NotificationService with WidgetsBindingObserver {
   bool _foreground = true;
   String? activeConvId; // conversation currently on screen
   void Function(String payload)? onTap;
+  void Function(String callId)? onCallAnswer;
+  void Function(String callId)? onCallDecline;
   bool hidePreview = false;
 
   Future<void> init() async {
@@ -14,10 +16,34 @@ class NotificationService with WidgetsBindingObserver {
     await _plugin.initialize(
       const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-        iOS: DarwinInitializationSettings(),
+        iOS: DarwinInitializationSettings(
+          notificationCategories: [
+            DarwinNotificationCategory(
+              'call_actions',
+              actions: [
+                DarwinNotificationAction.plain('answer', 'Answer',
+                    options: {DarwinNotificationActionOption.foreground}),
+                DarwinNotificationAction.plain('decline', 'Decline',
+                    options: {DarwinNotificationActionOption.destructive}),
+              ],
+            ),
+          ],
+        ),
       ),
       onDidReceiveNotificationResponse: (r) {
-        if (r.payload != null) onTap?.call(r.payload!);
+        final payload = r.payload ?? '';
+        final isCall = payload.startsWith('call');
+        final callId = payload.contains(':') ? payload.split(':')[1] : payload;
+
+        if (r.actionId == 'answer') {
+          onCallAnswer?.call(callId);
+        } else if (r.actionId == 'decline') {
+          onCallDecline?.call(callId);
+        } else if (isCall) {
+          onTap?.call(payload);
+        } else if (payload.isNotEmpty) {
+          onTap?.call(payload);
+        }
       },
     );
     await _plugin
@@ -56,12 +82,37 @@ class NotificationService with WidgetsBindingObserver {
         'Incoming call',
         name,
         const NotificationDetails(
-          android: AndroidNotificationDetails('calls', 'Calls',
-              channelDescription: 'Incoming calls', importance: Importance.max, priority: Priority.max,
-              category: AndroidNotificationCategory.call, fullScreenIntent: true, ongoing: true, autoCancel: false),
-          iOS: DarwinNotificationDetails(interruptionLevel: InterruptionLevel.timeSensitive),
+          android: AndroidNotificationDetails(
+            'calls',
+            'Calls',
+            channelDescription: 'Incoming calls',
+            importance: Importance.max,
+            priority: Priority.max,
+            category: AndroidNotificationCategory.call,
+            fullScreenIntent: false,
+            ongoing: true,
+            autoCancel: false,
+            actions: <AndroidNotificationAction>[
+              AndroidNotificationAction(
+                'answer',
+                'Answer',
+                showsUserInterface: true,
+                cancelNotification: true,
+              ),
+              AndroidNotificationAction(
+                'decline',
+                'Decline',
+                showsUserInterface: false,
+                cancelNotification: true,
+              ),
+            ],
+          ),
+          iOS: DarwinNotificationDetails(
+            interruptionLevel: InterruptionLevel.timeSensitive,
+            categoryIdentifier: 'call_actions',
+          ),
         ),
-        payload: 'call',
+        payload: 'call:$callId',
       );
 
   Future<void> cancelCall(String callId) => _plugin.cancel(_id(callId));

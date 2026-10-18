@@ -43,6 +43,7 @@ class _BootstrapState extends State<Bootstrap> with WidgetsBindingObserver {
   bool _loading = true, _hasIdentity = false, _locked = false;
   String? _error;
   bool _callOpen = false;
+  bool _inForeground = true;
   DateTime? _pausedAt;
 
   @override
@@ -73,13 +74,21 @@ class _BootstrapState extends State<Bootstrap> with WidgetsBindingObserver {
     core.notifications.onTap = (payload) {
       if (payload.startsWith('d:') || payload.startsWith('g:')) {
         navKey.currentState?.push(MaterialPageRoute(builder: (_) => ChatScreen(convId: payload)));
+      } else if (payload.startsWith('call')) {
+        _openCallScreen();
       }
+    };
+    core.notifications.onCallAnswer = (callId) async {
+      await core.calls.accept();
+      _openCallScreen();
+    };
+    core.notifications.onCallDecline = (callId) async {
+      await core.calls.decline();
     };
   }
 
-  void _onCall() {
-    final s = AppCore.I.calls.state;
-    if (!_callOpen && (s == CallState.incoming || s == CallState.outgoing)) {
+  void _openCallScreen() {
+    if (!_callOpen && (AppCore.I.calls.busy || AppCore.I.calls.state != CallState.idle)) {
       _callOpen = true;
       navKey.currentState
           ?.push(MaterialPageRoute(fullscreenDialog: true, builder: (_) => const CallScreen()))
@@ -87,8 +96,29 @@ class _BootstrapState extends State<Bootstrap> with WidgetsBindingObserver {
     }
   }
 
+  void _onCall() {
+    final s = AppCore.I.calls.state;
+    // For outgoing calls: always open call screen immediately
+    if (s == CallState.outgoing) {
+      _openCallScreen();
+      return;
+    }
+    // If call transitioned to active / connecting (e.g. accepted via notification action):
+    if (s == CallState.active || s == CallState.connecting) {
+      _openCallScreen();
+      return;
+    }
+    // For incoming calls:
+    // When other apps are open or PrivChat is in the background, do NOT hijack the screen.
+    // The notification banner with 'Answer' and 'Decline' actions will be shown.
+    if (s == CallState.incoming && _inForeground) {
+      _openCallScreen();
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
+    _inForeground = state == AppLifecycleState.resumed;
     if (!AppCore.ready) return;
     if (state == AppLifecycleState.paused) {
       _pausedAt = DateTime.now();

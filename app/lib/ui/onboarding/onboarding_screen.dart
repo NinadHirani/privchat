@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../core/services/app_core.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -15,10 +16,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _phone = TextEditingController();
   final _otp = TextEditingController();
 
-  int _step = 0; // 0: Welcome slides, 1: Phone input, 2: OTP, 3: Profile setup
+  int _step = 0; // 0: Welcome slides, 1: Phone input, 2: OTP, 3: Profile setup, 4: Permissions
   int _slidePage = 0;
   bool _busy = false;
   String _confirmedPhone = '';
+  bool _notifGranted = false;
+  bool _callGranted = false;
 
   Future<void> _requestOtp() async {
     final raw = _phone.text.trim();
@@ -62,7 +65,42 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  Future<void> _create() async {
+  Future<void> _checkPermissions() async {
+    try {
+      final notif = await Permission.notification.status;
+      final mic = await Permission.microphone.status;
+      if (mounted) {
+        setState(() {
+          _notifGranted = notif.isGranted;
+          _callGranted = mic.isGranted;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _requestNotif() async {
+    try {
+      final res = await Permission.notification.request();
+      if (mounted) setState(() => _notifGranted = res.isGranted);
+    } catch (_) {}
+  }
+
+  Future<void> _requestCalls() async {
+    try {
+      final mic = await Permission.microphone.request();
+      final cam = await Permission.camera.request();
+      if (mounted) setState(() => _callGranted = mic.isGranted || cam.isGranted);
+    } catch (_) {}
+  }
+
+  Future<void> _goToPermissions() async {
+    final n = _name.text.trim();
+    if (n.isEmpty) return toast(context, 'Enter a name your friends will recognise');
+    await _checkPermissions();
+    if (mounted) setState(() => _step = 4);
+  }
+
+  Future<void> _finishSetup() async {
     final n = _name.text.trim();
     if (n.isEmpty) return toast(context, 'Enter a name your friends will recognise');
     setState(() => _busy = true);
@@ -116,8 +154,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       case 2:
         return _buildOtpStep();
       case 3:
-      default:
         return _buildProfileStep();
+      case 4:
+      default:
+        return _buildPermissionsStep();
     }
   }
 
@@ -304,18 +344,121 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               prefixIcon: Icon(Icons.badge_outlined),
               border: OutlineInputBorder(),
             ),
-            onSubmitted: (_) => _create(),
+            onSubmitted: (_) => _goToPermissions(),
           ),
           const SizedBox(height: 16),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppTheme.mustardBrown, minimumSize: const Size.fromHeight(48)),
-            onPressed: _busy ? null : _create,
+            onPressed: _busy ? null : _goToPermissions,
+            child: const Text('Continue'),
+          ),
+          const Spacer(),
+          TextButton(onPressed: _busy ? null : _restore, child: const Text('I have a recovery key')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPermissionsStep() {
+    return Padding(
+      key: const ValueKey('permissions'),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 24),
+          const CircleAvatar(
+            radius: 36,
+            backgroundColor: AppTheme.mustardBrown,
+            child: Icon(Icons.security, size: 40, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          const Text('Permissions & Standby', textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text('PrivChat runs serverless and offline. We only request permissions necessary to keep your communications private and reliable.',
+              textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4)),
+          const SizedBox(height: 28),
+          _permTile(
+            icon: Icons.notifications_active_outlined,
+            title: 'Notifications',
+            subtitle: 'Banner alerts for incoming calls & offline messages without active battery drain',
+            granted: _notifGranted,
+            onRequest: _requestNotif,
+          ),
+          const SizedBox(height: 12),
+          _permTile(
+            icon: Icons.call_outlined,
+            title: 'Microphone & Camera',
+            subtitle: 'Required for encrypted voice and video calls (only accessed while on a call)',
+            granted: _callGranted,
+            onRequest: _requestCalls,
+          ),
+          const SizedBox(height: 12),
+          _permTile(
+            icon: Icons.battery_saver,
+            title: 'Ultra-Low Battery Standby',
+            subtitle: 'Zero permanent wake locks. Passive socket listening allows your phone to sleep normally',
+            granted: true,
+            onRequest: null,
+          ),
+          const Spacer(),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.mustardBrown, minimumSize: const Size.fromHeight(48)),
+            onPressed: _busy ? null : _finishSetup,
             child: _busy
                 ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : const Text('Start Chatting'),
           ),
-          const Spacer(),
-          TextButton(onPressed: _busy ? null : _restore, child: const Text('I have a recovery key')),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () => setState(() => _step = 3),
+            child: const Text('Back to profile'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _permTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool granted,
+    VoidCallback? onRequest,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppTheme.mustardBrown, size: 28),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5)),
+                const SizedBox(height: 3),
+                Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey, height: 1.3)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (granted)
+            const Icon(Icons.check_circle, color: Colors.green, size: 24)
+          else if (onRequest != null)
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+              ),
+              onPressed: onRequest,
+              child: const Text('Allow', style: TextStyle(fontSize: 12)),
+            ),
         ],
       ),
     );

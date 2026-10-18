@@ -165,6 +165,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const Divider(),
             _section('Connectivity'),
+            SwitchListTile(
+              secondary: const Icon(Icons.bolt_outlined),
+              title: const Text('Background standby'),
+              subtitle: const Text('Keep listening for messages and calls with near-zero battery usage'),
+              value: core.backgroundStandby,
+              onChanged: (v) => core.setBackgroundStandby(v),
+            ),
             ListTile(
               leading: const Icon(Icons.wifi_tethering),
               title: const Text('Network & nearby devices'),

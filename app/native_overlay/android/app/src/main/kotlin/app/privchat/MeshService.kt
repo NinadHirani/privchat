@@ -44,9 +44,13 @@ class MeshService : Service() {
         val nm = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= 26) {
             nm.createNotificationChannel(
-                NotificationChannel(CHANNEL, "Offline network", NotificationManager.IMPORTANCE_MIN).apply {
+                NotificationChannel(CHANNEL, "Background connectivity", NotificationManager.IMPORTANCE_MIN).apply {
                     description = "Keeps PrivChat reachable by nearby devices"
                     setShowBadge(false)
+                    enableLights(false)
+                    enableVibration(false)
+                    setSound(null, null)
+                    lockscreenVisibility = Notification.VISIBILITY_SECRET
                 }
             )
         }
@@ -56,10 +60,13 @@ class MeshService : Service() {
         )
         val n: Notification = NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_privchat)
-            .setContentTitle("PrivChat is reachable nearby")
-            .setContentText("No internet needed · end-to-end encrypted")
+            .setContentTitle("PrivChat")
+            .setContentText("Standby mode active")
             .setOngoing(true)
+            .setSilent(true)
+            .setVisibility(NotificationCompat.VISIBILITY_SECRET)
             .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setContentIntent(open)
             .build()
         if (Build.VERSION.SDK_INT >= 29) {
@@ -68,12 +75,11 @@ class MeshService : Service() {
             startForeground(ID, n)
         }
 
+        // Multicast lock is required for local network UDP/mDNS discovery.
+        // We do NOT acquire permanent high-perf wifi locks or CPU wake locks here
+        // to prevent battery drain and keep the app silent/undetected by OS battery managers.
         val wm = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
         multicastLock = wm.createMulticastLock("privchat-mdns").apply { setReferenceCounted(false); acquire() }
-        @Suppress("DEPRECATION")
-        wifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "privchat-wifi").apply { setReferenceCounted(false); acquire() }
-        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "privchat:mesh").apply { setReferenceCounted(false); acquire() }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY

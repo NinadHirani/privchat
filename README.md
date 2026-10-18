@@ -12,11 +12,17 @@ disappearing messages · safety-number / QR verification · biometric app lock �
 encrypted database (SQLCipher) + encrypted media vault · screenshot blocking (Android) ·
 store-and-forward outbox (messages go out automatically when the contact comes back in range).
 
-## Download Android APK
-Directly download and install the latest Android APK from GitHub Releases:
-👉 **[Download PrivChat APK](https://github.com/NinadHirani/privchat/releases/latest)**
+## ⚡ Download Android APK
 
-No setup or compilation required on your phone. Just download `PrivChat-release.apk` and tap install.
+Install PrivChat directly on your Android phone without needing to compile anything:
+
+| Architecture | Download Link | Fast Global CDN Mirror | Size | Best For |
+|---|---|---|---|---|
+| **ARM64 (Recommended)** | [Direct Download](https://github.com/NinadHirani/privchat/releases/download/v1.0.0/app-arm64-v8a-release.apk) | [⚡ Fast Mirror](https://ghfast.top/https://github.com/NinadHirani/privchat/releases/download/v1.0.0/app-arm64-v8a-release.apk) | **43 MB** | 99% of modern Android phones (Samsung, Pixel, OnePlus, Xiaomi, etc.) |
+| **ARM 32-bit** | [Direct Download](https://github.com/NinadHirani/privchat/releases/download/v1.0.0/app-armeabi-v7a-release.apk) | [⚡ Fast Mirror](https://ghfast.top/https://github.com/NinadHirani/privchat/releases/download/v1.0.0/app-armeabi-v7a-release.apk) | **34 MB** | Older Android devices |
+| **Universal (All CPUs)** | [Direct Download](https://github.com/NinadHirani/privchat/releases/download/v1.0.0/app-release.apk) | [⚡ Fast Mirror](https://ghfast.top/https://github.com/NinadHirani/privchat/releases/download/v1.0.0/app-release.apk) | **118 MB** | Works on any device |
+
+> **Tip:** If your standard GitHub download is slow or throttled, click the **⚡ Fast Mirror** link for high-speed download.
 
 ## Build (needs Flutter ≥ 3.22; Android Studio; Xcode on a Mac for iOS)
 ```bash

@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+env/
+venv/
+ENV/
+.pytest_cache/
+*.seed
+.privchat_cli_seed
+
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+
+# Android
+.gradle/
+local.properties
+**/build/
+app/android/.gradle/
+app/android/local.properties
+app/android/**/build/
+app/android/app/build/
+*.keystore
+*.jks
+
+# iOS
+Pods/
+Podfile.lock
+.symlinks/
+app/ios/Pods/
+app/ios/Podfile.lock
+app/ios/.symlinks/
+app/ios/Flutter/Flutter.framework
+app/ios/Flutter/Flutter.podspec
+app/ios/Flutter/Generated.xcconfig
+app/ios/Flutter/app.framework
+
+# macOS / IDE
+.DS_Store
+.idea/
+*.iml
+.vscode/

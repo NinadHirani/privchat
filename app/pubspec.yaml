@@ -1,0 +1,68 @@
+name: privchat
+description: Serverless, offline, end-to-end encrypted messenger with LAN voice calls.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+
+  # crypto (libsodium)
+  sodium_libs: ^3.4.0
+
+  # storage
+  sqlite3: ^2.4.6
+  sqlcipher_flutter_libs: ^0.6.4
+  flutter_secure_storage: ^9.2.2
+  path_provider: ^2.1.4
+  path: ^1.9.0
+
+  # networking / discovery
+  bonsoir: ^5.1.10
+  network_info_plus: ^6.0.1
+  connectivity_plus: ^6.0.5
+
+  # calls
+  flutter_webrtc: ^0.12.3
+  wakelock_plus: ^1.2.8
+
+  # media & sharing
+  image_picker: ^1.1.2
+  file_picker: ^8.1.2
+  image: ^4.2.0
+  video_player: ^2.9.2
+  open_filex: ^4.5.0
+  share_plus: ^10.0.2
+  record: ^5.1.2
+  audioplayers: ^6.1.0
+
+  # location / contacts / qr
+  geolocator: ^13.0.1
+  flutter_compass: ^0.8.0
+  flutter_contacts: ^1.1.9+2
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^5.2.3
+
+  # misc
+  permission_handler: ^11.3.1
+  flutter_local_notifications: ^17.2.3
+  uuid: ^4.5.1
+  intl: ^0.19.0
+  local_auth: ^2.3.0
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/test_vectors.json

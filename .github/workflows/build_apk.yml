@@ -49,13 +49,14 @@ jobs:
       - name: Build Android APK
         run: |
           cd app
-          flutter build apk --release
+          flutter build apk --release --split-per-abi
+          ls -lh build/app/outputs/flutter-apk/
 
-      - name: Upload APK as Workflow Artifact
+      - name: Upload APKs as Workflow Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: privchat-android-apk
-          path: app/build/app/outputs/flutter-apk/app-release.apk
+          name: privchat-android-apks
+          path: app/build/app/outputs/flutter-apk/*.apk
           if-no-files-found: error
 
       - name: Create or Update GitHub Release
@@ -63,27 +64,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG_NAME="v1.0.0"
-          APK_PATH="app/build/app/outputs/flutter-apk/app-release.apk"
+          cd app/build/app/outputs/flutter-apk/
           
-          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            echo "Release $TAG_NAME already exists, uploading APK asset..."
-            gh release upload "$TAG_NAME" "$APK_PATH#PrivChat-release.apk" --clobber
-          else
-            echo "Creating release $TAG_NAME with APK asset..."
-            gh release create "$TAG_NAME" "$APK_PATH#PrivChat-release.apk" \
-              --title "PrivChat $TAG_NAME (Android APK)" \
-              --notes "### PrivChat Android Release 🚀
-            
-          Serverless, offline, end-to-end encrypted messenger.
-          
-          **Download & Install:**
-          - Download the \`PrivChat-release.apk\` asset below
-          - Open it on your Android device to install
-          
-          **Features:**
-          - 1:1 and Group chats
-          - Local Wi-Fi / hotspot / Wi-Fi Direct discovery
-          - End-to-end encrypted (libsodium)
-          - Offline outbox and safety numbers" \
-              --latest
-          fi
+          # Upload all split APKs (arm64-v8a, armeabi-v7a, x86_64)
+          gh release upload "$TAG_NAME" \
+            app-arm64-v8a-release.apk#PrivChat-arm64-v8a-release.apk \
+            app-armeabi-v7a-release.apk#PrivChat-armeabi-v7a-release.apk \
+            app-x86_64-release.apk#PrivChat-x86_64-release.apk \
+            --repo "$GITHUB_REPOSITORY" --clobber

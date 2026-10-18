@@ -40,7 +40,7 @@ def android():
     groovy = p("android", "app", "build.gradle")
     if os.path.exists(kts):
         s = open(kts).read()
-        s = re.sub(r"compileSdk\s*=\s*[^\n]+", "compileSdk = 34", s)
+        s = re.sub(r"compileSdk\s*=\s*[^\n]+", "compileSdk = 36", s)
         s = re.sub(r"targetSdk\s*=\s*[^\n]+", "targetSdk = 34", s)
         s = re.sub(r"minSdk\s*=\s*[^\n]+", "minSdk = 24", s)
         s = re.sub(r'namespace\s*=\s*"[^"]+"', 'namespace = "app.privchat"', s)
@@ -49,10 +49,10 @@ def android():
             s = s.replace("compileOptions {", "compileOptions {\n        isCoreLibraryDesugaringEnabled = true", 1)
         if "desugar_jdk_libs" not in s:
             s += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
-        open(kts, "w").write(s); say("patched build.gradle.kts (compileSdk 34, minSdk 24, desugaring, app id)")
+        open(kts, "w").write(s); say("patched build.gradle.kts (compileSdk 36, minSdk 24, desugaring, app id)")
     elif os.path.exists(groovy):
         s = open(groovy).read()
-        s = re.sub(r"compileSdk(Version)?\s*=?\s*[^\n]+", "compileSdkVersion 34", s, count=1)
+        s = re.sub(r"compileSdk(Version)?\s*=?\s*[^\n]+", "compileSdkVersion 36", s, count=1)
         s = re.sub(r"targetSdk(Version)?\s*=?\s*[^\n]+", "targetSdkVersion 34", s, count=1)
         s = re.sub(r"minSdk(Version)?\s*=?\s*[^\n]+", "minSdkVersion 24", s, count=1)
         s = re.sub(r'namespace\s*=?\s*"[^"]+"', 'namespace "app.privchat"', s)
@@ -61,11 +61,11 @@ def android():
             s = s.replace("compileOptions {", "compileOptions {\n        coreLibraryDesugaringEnabled true", 1)
         if "desugar_jdk_libs" not in s:
             s += "\ndependencies {\n    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'\n}\n"
-        open(groovy, "w").write(s); say("patched build.gradle (compileSdk 34, minSdk 24, desugaring, app id)")
+        open(groovy, "w").write(s); say("patched build.gradle (compileSdk 36, minSdk 24, desugaring, app id)")
     else:
         say("WARNING: no app build.gradle found")
 
-    # Enforce compileSdk 34 on plugins/subprojects (e.g. bonsoir_android)
+    # Enforce compileSdk 36 on plugins/subprojects (e.g. bonsoir_android)
     root_kts = p("android", "build.gradle.kts")
     root_groovy = p("android", "build.gradle")
     subproj_kts = """
@@ -76,11 +76,11 @@ subprojects {
         if (extension != null) {
             try {
                 val method = extension.javaClass.getMethod("setCompileSdkVersion", Int::class.java)
-                method.invoke(extension, 34)
+                method.invoke(extension, 36)
             } catch (e: Exception) {
                 try {
                     val property = extension.javaClass.getMethod("setCompileSdk", Int::class.java)
-                    property.invoke(extension, 34)
+                    property.invoke(extension, 36)
                 } catch (ignored: Exception) {}
             }
         }
@@ -99,7 +99,7 @@ subprojects { project ->
     def applySdk = {
         if (project.hasProperty("android")) {
             try {
-                project.android.compileSdkVersion 34
+                project.android.compileSdkVersion 36
             } catch (Exception ignored) {}
         }
     }
@@ -116,12 +116,12 @@ subprojects { project ->
         rk = open(root_kts).read()
         if "setCompileSdkVersion" not in rk:
             open(root_kts, "a").write(subproj_kts)
-            say("enforced compileSdk 34 on subprojects in android/build.gradle.kts")
+            say("enforced compileSdk 36 on subprojects in android/build.gradle.kts")
     elif os.path.exists(root_groovy):
         rg = open(root_groovy).read()
-        if "compileSdkVersion 34" not in rg:
+        if "compileSdkVersion" not in rg:
             open(root_groovy, "a").write(subproj_groovy)
-            say("enforced compileSdk 34 on subprojects in android/build.gradle")
+            say("enforced compileSdk 36 on subprojects in android/build.gradle")
 
 INFO_KEYS = {
     "NSMicrophoneUsageDescription": "PrivChat uses the microphone for encrypted voice calls and voice messages.",

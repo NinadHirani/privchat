@@ -41,6 +41,11 @@ jobs:
           python3 tool/setup_platforms.py
           flutter pub get
 
+      - name: Set up Android SDK platform 36
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" || true
+
       - name: Build Android APK
         run: |
           cd app

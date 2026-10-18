@@ -23,7 +23,7 @@ class PrivChatApp extends StatelessWidget {
   const PrivChatApp({super.key});
   @override
   Widget build(BuildContext context) => MaterialApp(
-        title: 'PrivChat',
+        title: 'Pritoy',
         debugShowCheckedModeBanner: false,
         navigatorKey: navKey,
         theme: AppTheme.light,

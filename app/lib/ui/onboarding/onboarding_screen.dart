@@ -163,10 +163,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _buildWelcomeSlides() {
     final pages = [
-      _info(Icons.lock_outline, 'Private by design',
+      _info('assets/icon/app_icon.png', 'Private by design',
           'End-to-end encrypted with libsodium. Serverless on LAN, with zero-knowledge relay over the internet. Nobody can read your messages or listen to your calls.'),
       _info(Icons.contacts, 'Talk to Google Contacts',
-          'Verify your phone number once like WhatsApp. PrivChat discovers which of your saved Google contacts are on PrivChat and lets you invite others with 1 tap.'),
+          'Verify your phone number once like WhatsApp. Pritoy discovers which of your saved Google contacts are on Pritoy and lets you invite others with 1 tap.'),
       _info(Icons.wifi_tethering, 'Works offline & online',
           'Direct P2P over Wi-Fi, hotspot, or Wi-Fi Direct with zero internet — and seamless cloud relay when you are across the city or world.'),
     ];
@@ -229,7 +229,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           const Text(
-            'PrivChat will verify your number so your Google Contacts can find and message you.',
+            'Pritoy will verify your number so your Google Contacts can find and message you.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
           ),
@@ -375,7 +375,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const SizedBox(height: 16),
           const Text('Permissions & Standby', textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          const Text('PrivChat runs serverless and offline. We only request permissions necessary to keep your communications private and reliable.',
+          const Text('Pritoy runs serverless and offline. We only request permissions necessary to keep your communications private and reliable.',
               textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4)),
           const SizedBox(height: 28),
           _permTile(
@@ -464,12 +464,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _info(IconData icon, String title, String body) => Padding(
+  Widget _info(dynamic iconOrAsset, String title, String body) => Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 96, color: AppTheme.mustardBrown),
+            if (iconOrAsset is String)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Image.asset(iconOrAsset, width: 104, height: 104),
+              )
+            else if (iconOrAsset is IconData)
+              Icon(iconOrAsset, size: 96, color: AppTheme.mustardBrown),
             const SizedBox(height: 32),
             Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),

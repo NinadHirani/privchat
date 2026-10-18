@@ -160,7 +160,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ListTile(leading: const Icon(Icons.key), title: const Text('Recovery key'), subtitle: const Text('Restore your identity on a new phone'), onTap: _showRecovery),
             ListTile(
               leading: const Icon(Icons.badge_outlined),
-              title: const Text('My PrivChat ID'),
+              title: const Text('My Pritoy ID'),
               subtitle: Text(core.identity.userId, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
             ),
             const Divider(),
@@ -184,11 +184,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.info_outline),
-              title: const Text('How PrivChat protects you'),
+              title: const Text('How Pritoy protects you'),
               onTap: () => showAboutDialog(
                 context: context,
-                applicationName: 'PrivChat',
+                applicationName: 'Pritoy',
                 applicationVersion: '1.0.0',
+                applicationIcon: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.asset('assets/icon/app_icon.png', width: 48, height: 48),
+                ),
                 children: const [
                   Text('• No servers, accounts, phone numbers or analytics.\n'
                       '• Devices talk directly over Wi-Fi, hotspot, Wi-Fi Direct (Android) or Multipeer (iPhone).\n'

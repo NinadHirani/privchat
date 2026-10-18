@@ -475,7 +475,7 @@ class _ContactBody extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
               for (final p in phones.take(3)) Text(p, style: const TextStyle(fontSize: 12.5)),
-              if (uid != null) const Text('PrivChat user', style: TextStyle(fontSize: 12, color: AppTheme.teal)),
+              if (uid != null) const Text('Pritoy user', style: TextStyle(fontSize: 12, color: AppTheme.teal)),
             ]),
           ),
         ]),

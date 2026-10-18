@@ -56,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onChanged: (v) => setState(() => _q = v.toLowerCase()),
                 )
               : const Text(
-                  'PrivChat',
+                  'Pritoy',
                   style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
                 ),
           actions: [

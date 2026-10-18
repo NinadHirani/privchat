@@ -89,7 +89,7 @@ class DeviceContactsService {
   }
 
   Future<void> inviteContact(DeviceContactItem contact) async {
-    final text = 'Hey ${contact.displayName}! Let\'s talk on PrivChat — the serverless, private encrypted messenger. Download it here: https://github.com/NinadHirani/privchat/releases/latest';
+    final text = 'Hey ${contact.displayName}! Let\'s talk on Pritoy — the serverless, private encrypted messenger. Download it here: https://github.com/NinadHirani/privchat/releases/latest';
     if (contact.phone.isNotEmpty) {
       final uri = Uri.parse('sms:${contact.phone}?body=${Uri.encodeComponent(text)}');
       if (await canLaunchUrl(uri)) {
@@ -97,6 +97,6 @@ class DeviceContactsService {
         return;
       }
     }
-    await Share.share(text, subject: 'Join me on PrivChat');
+    await Share.share(text, subject: 'Join me on Pritoy');
   }
 }

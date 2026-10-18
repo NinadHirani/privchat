@@ -65,7 +65,7 @@ class NotificationService with WidgetsBindingObserver {
     if (_foreground && activeConvId == convId) return;
     await _plugin.show(
       _id(convId),
-      hidePreview ? 'PrivChat' : title,
+      hidePreview ? 'Pritoy' : title,
       hidePreview ? 'New message' : body,
       const NotificationDetails(
         android: AndroidNotificationDetails('messages', 'Messages',

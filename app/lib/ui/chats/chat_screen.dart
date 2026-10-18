@@ -146,7 +146,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final picked = await showModalBottomSheet<Contact>(
       context: context,
       builder: (c) => ListView(children: [
-        const ListTile(title: Text('Share a PrivChat contact', style: TextStyle(fontWeight: FontWeight.bold))),
+        const ListTile(title: Text('Share a Pritoy contact', style: TextStyle(fontWeight: FontWeight.bold))),
         for (final ct in contacts)
           ListTile(leading: Avatar(name: ct.name, bytes: ct.avatar), title: Text(ct.name), onTap: () => Navigator.pop(c, ct)),
       ]),
@@ -191,7 +191,7 @@ class _ChatScreenState extends State<ChatScreen> {
               item(Icons.videocam, 'Video', Colors.deepOrange, () => _pickVideo(ImageSource.gallery)),
               item(Icons.location_on, 'Location', Colors.green, _location),
               item(Icons.person, 'Phone contact', Colors.blue, _pickContact),
-              item(Icons.verified_user, 'PrivChat contact', AppTheme.teal, _sharePrivchatContact),
+              item(Icons.verified_user, 'Pritoy contact', AppTheme.teal, _sharePrivchatContact),
               item(Icons.video_call, 'Record video', Colors.red, () => _pickVideo(ImageSource.camera)),
             ],
           ),

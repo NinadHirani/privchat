@@ -55,7 +55,7 @@ class _MediaViewerState extends State<MediaViewer> {
         backgroundColor: Colors.black,
         appBar: AppBar(
           backgroundColor: Colors.black,
-          actions: [IconButton(icon: const Icon(Icons.share), tooltip: 'Export (leaves PrivChat)', onPressed: _share)],
+          actions: [IconButton(icon: const Icon(Icons.share), tooltip: 'Export (leaves Pritoy)', onPressed: _share)],
         ),
         body: Center(
           child: isVideo

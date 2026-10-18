@@ -24,8 +24,8 @@ class AppDrawer extends StatelessWidget {
   void _inviteFriends(BuildContext context) {
     Navigator.pop(context);
     Share.share(
-      'Hey! Chat with me privately and securely on PrivChat. Download it here: https://github.com/NinadHirani/privchat/releases/latest',
-      subject: 'Join me on PrivChat',
+      'Hey! Chat with me privately and securely on Pritoy. Download it here: https://github.com/NinadHirani/privchat/releases/latest',
+      subject: 'Join me on Pritoy',
     );
   }
 
@@ -175,7 +175,7 @@ class AppDrawer extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.person_add_outlined),
                   title: const Text('Invite Friends'),
-                  subtitle: const Text('Share PrivChat download link'),
+                  subtitle: const Text('Share Pritoy download link'),
                   onTap: () => _inviteFriends(context),
                 ),
               ],
@@ -188,7 +188,7 @@ class AppDrawer extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('PrivChat for Android & iOS', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const Text('Pritoy for Android & iOS', style: TextStyle(fontSize: 12, color: Colors.grey)),
                 Text('v1.0.0', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
               ],
             ),

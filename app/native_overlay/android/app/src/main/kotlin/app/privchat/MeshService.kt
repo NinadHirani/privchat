@@ -45,7 +45,7 @@ class MeshService : Service() {
         if (Build.VERSION.SDK_INT >= 26) {
             nm.createNotificationChannel(
                 NotificationChannel(CHANNEL, "Background connectivity", NotificationManager.IMPORTANCE_MIN).apply {
-                    description = "Keeps PrivChat reachable by nearby devices"
+                    description = "Keeps Pritoy reachable by nearby devices"
                     setShowBadge(false)
                     enableLights(false)
                     enableVibration(false)
@@ -60,7 +60,7 @@ class MeshService : Service() {
         )
         val n: Notification = NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_privchat)
-            .setContentTitle("PrivChat")
+            .setContentTitle("Pritoy")
             .setContentText("Standby mode active")
             .setOngoing(true)
             .setSilent(true)

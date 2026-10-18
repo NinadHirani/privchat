@@ -205,13 +205,13 @@ class _NewChatScreenState extends State<NewChatScreen> {
                 for (final p in filteredNearby) _nearbyTile(p),
               ],
 
-              // SECTION 1: Contacts on PrivChat
-              _header('Contacts on PrivChat (${filteredPrivChat.length + privchatGoogleContacts.length})'),
+              // SECTION 1: Contacts on Pritoy
+              _header('Contacts on Pritoy (${filteredPrivChat.length + privchatGoogleContacts.length})'),
               if (filteredPrivChat.isEmpty && privchatGoogleContacts.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Text(
-                    'No PrivChat contacts yet. Invite friends from your Google Contacts below or scan their QR code.',
+                    'No Pritoy contacts yet. Invite friends from your Google Contacts below or scan their QR code.',
                     style: TextStyle(color: Colors.grey, fontSize: 13),
                   ),
                 ),
@@ -219,10 +219,10 @@ class _NewChatScreenState extends State<NewChatScreen> {
               for (final c in filteredPrivChat) _privChatTile(c),
               for (final gc in privchatGoogleContacts) _googlePrivChatTile(gc),
 
-              // SECTION 2: Invite to PrivChat (Google Contacts)
+              // SECTION 2: Invite to Pritoy (Google Contacts)
               if (_hasPermission && inviteGoogleContacts.isNotEmpty) ...[
                 const Divider(height: 32),
-                _header('Invite to PrivChat (Google Contacts · ${inviteGoogleContacts.length})'),
+                _header('Invite to Pritoy (Google Contacts · ${inviteGoogleContacts.length})'),
                 for (final gc in inviteGoogleContacts) _inviteTile(gc),
               ],
 
@@ -263,7 +263,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
                 ),
                 SizedBox(height: 2),
                 Text(
-                  'Find friends already using PrivChat and invite others via SMS.',
+                  'Find friends already using Pritoy and invite others via SMS.',
                   style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
@@ -311,7 +311,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
         ],
       ),
       subtitle: Text(
-        online ? 'Nearby · Connected' : (c.about.isNotEmpty ? c.about : 'PrivChat Contact'),
+        online ? 'Nearby · Connected' : (c.about.isNotEmpty ? c.about : 'Pritoy Contact'),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -352,7 +352,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
               color: AppTheme.amberAccent.withOpacity(0.2),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Text('PrivChat', style: TextStyle(fontSize: 10, color: AppTheme.mustardBrown, fontWeight: FontWeight.bold)),
+            child: const Text('Pritoy', style: TextStyle(fontSize: 10, color: AppTheme.mustardBrown, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

@@ -36,7 +36,7 @@ class AppCore extends ChangeNotifier {
   late final NotificationService notifications;
   String displayName = '';
   Uint8List? avatar;
-  String about = 'Hey there! I am using PrivChat.';
+  String about = 'Hey there! I am using Pritoy.';
   final Set<String> typingPeers = {}; // convIds where the peer is typing
   Timer? _housekeeping;
 

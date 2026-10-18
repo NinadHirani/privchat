@@ -149,7 +149,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Hey! Loving this custom PrivChat aesthetic 🎨',
+                                      'Hey! Loving this custom Pritoy aesthetic 🎨',
                                       style: TextStyle(color: tm.peerTextColor, fontSize: 14),
                                     ),
                                     const SizedBox(height: 4),
@@ -307,7 +307,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                 child: Icon(Icons.palette, color: Colors.white),
               ),
               title: const Text('Default Cadet Grey Canvas'),
-              subtitle: const Text('Signature PrivChat neutral background'),
+              subtitle: const Text('Signature Pritoy neutral background'),
               onTap: () => _applyWallpaper(const WallpaperConfig(type: WallpaperType.def)),
             ),
 

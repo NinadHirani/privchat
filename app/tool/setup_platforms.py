@@ -124,21 +124,21 @@ subprojects { project ->
             say("enforced compileSdk 36 on subprojects in android/build.gradle")
 
 INFO_KEYS = {
-    "NSMicrophoneUsageDescription": "PrivChat uses the microphone for encrypted voice calls and voice messages.",
-    "NSCameraUsageDescription": "PrivChat uses the camera for photos, videos, video calls and scanning contact QR codes.",
-    "NSPhotoLibraryUsageDescription": "PrivChat lets you share photos and videos from your library.",
-    "NSPhotoLibraryAddUsageDescription": "PrivChat can save received photos and videos to your library.",
-    "NSLocationWhenInUseUsageDescription": "PrivChat shares your location only when you choose to send it.",
-    "NSContactsUsageDescription": "PrivChat lets you pick a contact card to share. Your address book is never uploaded.",
-    "NSFaceIDUsageDescription": "PrivChat uses Face ID to unlock the app.",
-    "NSLocalNetworkUsageDescription": "PrivChat talks directly to nearby devices on your Wi-Fi or hotspot — no internet or servers.",
-    "NSBluetoothAlwaysUsageDescription": "PrivChat connects directly to nearby iPhones when there is no Wi-Fi.",
+    "NSMicrophoneUsageDescription": "Pritoy uses the microphone for encrypted voice calls and voice messages.",
+    "NSCameraUsageDescription": "Pritoy uses the camera for photos, videos, video calls and scanning contact QR codes.",
+    "NSPhotoLibraryUsageDescription": "Pritoy lets you share photos and videos from your library.",
+    "NSPhotoLibraryAddUsageDescription": "Pritoy can save received photos and videos to your library.",
+    "NSLocationWhenInUseUsageDescription": "Pritoy shares your location only when you choose to send it.",
+    "NSContactsUsageDescription": "Pritoy lets you pick a contact card to share. Your address book is never uploaded.",
+    "NSFaceIDUsageDescription": "Pritoy uses Face ID to unlock the app.",
+    "NSLocalNetworkUsageDescription": "Pritoy talks directly to nearby devices on your Wi-Fi or hotspot — no internet or servers.",
+    "NSBluetoothAlwaysUsageDescription": "Pritoy connects directly to nearby iPhones when there is no Wi-Fi.",
     "NSBonjourServices": ["_privchat._tcp", "_privchat-mp._tcp", "_privchat-mp._udp"],
     "UIBackgroundModes": ["audio", "voip"],
     "ITSAppUsesNonExemptEncryption": True,
     "UIFileSharingEnabled": False,
     "LSSupportsOpeningDocumentsInPlace": False,
-    "CFBundleDisplayName": "PrivChat",
+    "CFBundleDisplayName": "Pritoy",
 }
 
 def ios():
@@ -146,12 +146,7 @@ def ios():
         say("ios/Runner missing — skipping iOS setup. Run `flutter create ...` if needed.")
         return
     print("iOS:")
-    if os.path.exists(os.path.join(OVL, "ios", "Runner", "AppDelegate.swift")):
-        shutil.copy2(os.path.join(OVL, "ios", "Runner", "AppDelegate.swift"), p("ios", "Runner", "AppDelegate.swift"))
-        say("overlay AppDelegate.swift (+ Multipeer)")
-    if os.path.exists(os.path.join(OVL, "ios", "Podfile")):
-        shutil.copy2(os.path.join(OVL, "ios", "Podfile"), p("ios", "Podfile"))
-        say("overlay Podfile (iOS 15, permission macros)")
+    copy_tree(os.path.join(OVL, "ios"), p("ios"))
     plist = p("ios", "Runner", "Info.plist")
     if os.path.exists(plist):
         with open(plist, "rb") as f: d = plistlib.load(f)

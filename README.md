@@ -1,4 +1,4 @@
-# PrivChat — serverless, offline, end-to-end encrypted messenger (Android + iOS)
+# Pritoy — serverless, offline, end-to-end encrypted messenger (Android + iOS)
 
 No servers · no accounts · no phone number · no internet required.
 Phones find each other on the same Wi-Fi / hotspot (and Wi-Fi Direct on Android,
@@ -14,7 +14,7 @@ store-and-forward outbox (messages go out automatically when the contact comes b
 
 ## ⚡ Download Android APK
 
-Install PrivChat directly on your Android phone without needing to compile anything:
+Install Pritoy directly on your Android phone without needing to compile anything:
 
 | Architecture | Download Link | Fast Global CDN Mirror | Size | Best For |
 |---|---|---|---|---|

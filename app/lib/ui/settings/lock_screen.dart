@@ -22,7 +22,7 @@ class _LockScreenState extends State<LockScreen> {
   Future<void> _unlock() async {
     try {
       final ok = await _auth.authenticate(
-        localizedReason: 'Unlock PrivChat',
+        localizedReason: 'Unlock Pritoy',
         options: const AuthenticationOptions(stickyAuth: true, biometricOnly: false),
       );
       if (ok) widget.onUnlocked();
@@ -35,9 +35,12 @@ class _LockScreenState extends State<LockScreen> {
   Widget build(BuildContext context) => Scaffold(
         body: Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.lock, size: 72, color: AppTheme.teal),
-            const SizedBox(height: 16),
-            const Text('PrivChat is locked', style: TextStyle(fontSize: 20)),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.asset('assets/icon/app_icon.png', width: 80, height: 80),
+            ),
+            const SizedBox(height: 20),
+            const Text('Pritoy is locked', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             if (_err != null) Padding(padding: const EdgeInsets.all(12), child: Text(_err!, textAlign: TextAlign.center)),
             const SizedBox(height: 24),
             FilledButton.icon(onPressed: _unlock, icon: const Icon(Icons.fingerprint), label: const Text('Unlock')),

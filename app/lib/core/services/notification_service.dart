@@ -14,8 +14,8 @@ class NotificationService with WidgetsBindingObserver {
   Future<void> init() async {
     WidgetsBinding.instance.addObserver(this);
     await _plugin.initialize(
-      const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      InitializationSettings(
+        android: const AndroidInitializationSettings('@mipmap/ic_launcher'),
         iOS: DarwinInitializationSettings(
           notificationCategories: [
             DarwinNotificationCategory(

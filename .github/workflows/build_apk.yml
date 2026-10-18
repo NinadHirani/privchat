@@ -60,15 +60,19 @@ jobs:
           TAG_NAME="v1.0.0"
           APK_PATH="app/build/app/outputs/flutter-apk/app-release.apk"
           
-          # Create or update release and attach APK
-          gh release view "$TAG_NAME" || gh release create "$TAG_NAME" \
-            --title "PrivChat $TAG_NAME (Android APK)" \
-            --notes "### PrivChat Android Release 🚀
-          
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Release $TAG_NAME already exists, uploading APK asset..."
+            gh release upload "$TAG_NAME" "$APK_PATH#PrivChat-release.apk" --clobber
+          else
+            echo "Creating release $TAG_NAME with APK asset..."
+            gh release create "$TAG_NAME" "$APK_PATH#PrivChat-release.apk" \
+              --title "PrivChat $TAG_NAME (Android APK)" \
+              --notes "### PrivChat Android Release 🚀
+            
           Serverless, offline, end-to-end encrypted messenger.
           
           **Download & Install:**
-          - Download the \`app-release.apk\` asset below
+          - Download the \`PrivChat-release.apk\` asset below
           - Open it on your Android device to install
           
           **Features:**
@@ -76,6 +80,5 @@ jobs:
           - Local Wi-Fi / hotspot / Wi-Fi Direct discovery
           - End-to-end encrypted (libsodium)
           - Offline outbox and safety numbers" \
-            --latest
-            
-          gh release upload "$TAG_NAME" "$APK_PATH#PrivChat-release.apk" --clobber
+              --latest
+          fi

@@ -17,7 +17,7 @@ class AppTheme {
         colorScheme: ColorScheme.fromSeed(seedColor: teal, primary: teal, secondary: green),
         appBarTheme: const AppBarTheme(backgroundColor: teal, foregroundColor: Colors.white, elevation: 0),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(backgroundColor: green, foregroundColor: Colors.white),
-        tabBarTheme: const TabBarTheme(labelColor: Colors.white, unselectedLabelColor: Colors.white70, indicatorColor: Colors.white),
+        tabBarTheme: const TabBarThemeData(labelColor: Colors.white, unselectedLabelColor: Colors.white70, indicatorColor: Colors.white),
       );
 
   static ThemeData get dark => ThemeData(
@@ -27,7 +27,7 @@ class AppTheme {
         scaffoldBackgroundColor: const Color(0xFF111B21),
         appBarTheme: const AppBarTheme(backgroundColor: tealDark, foregroundColor: Colors.white, elevation: 0),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(backgroundColor: green, foregroundColor: Colors.black),
-        tabBarTheme: const TabBarTheme(labelColor: green, unselectedLabelColor: Colors.white60, indicatorColor: green),
+        tabBarTheme: const TabBarThemeData(labelColor: green, unselectedLabelColor: Colors.white60, indicatorColor: green),
       );
 
   static bool isDark(BuildContext c) => Theme.of(c).brightness == Brightness.dark;

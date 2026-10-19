@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../core/constants/auth_config.dart';
 import '../../core/services/app_core.dart';
+import '../../core/services/auth_helpers.dart';
+import '../../core/services/firebase_status.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -32,9 +36,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _callGranted = false;
 
   Future<void> _signInWithGoogle() async {
+    if (_busy) return;
+    if (!FirebaseStatus.ready) {
+      return toast(context, kSignInUnavailableMessage);
+    }
     setState(() => _busy = true);
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn();
+      final GoogleSignIn googleSignIn = GoogleSignIn(serverClientId: kGoogleWebClientId);
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
         setState(() => _busy = false);
@@ -64,17 +72,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _busy = false);
-        toast(context, 'Google Sign-In failed: $e');
+        // A user-initiated cancellation is not an error: return quietly.
+        if (!isAuthCancelled(e)) {
+          toast(context, 'Google Sign-In failed: ${friendlyAuthError(e)}');
+        }
       }
     }
   }
 
   Future<void> _requestOtp({bool isResend = false}) async {
-    final raw = _phone.text.trim();
-    if (raw.isEmpty || raw.length < 7) {
-      return toast(context, 'Please enter a valid phone number with country code');
+    if (_busy) return;
+    if (!FirebaseStatus.ready) {
+      return toast(context, kSignInUnavailableMessage);
     }
-    final formatted = raw.startsWith('+') ? raw : '+$raw';
+    // Normalize loose input (spaces, hyphens, missing +) into E.164 before
+    // it reaches Firebase or is stored as the user's directory phone.
+    final formatted = normalizeE164(_phone.text);
+    if (formatted == null) {
+      return toast(context, 'Enter a valid phone number with country code, e.g. +91 9876543210');
+    }
     setState(() {
       _busy = true;
       _confirmedPhone = formatted;
@@ -95,14 +111,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               });
               toast(context, 'Phone verified automatically!');
             }
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('Auto-verification sign-in failed: $e');
+            if (mounted) {
+              setState(() => _busy = false);
+              toast(context, 'Automatic verification failed: ${friendlyAuthError(e)}');
+            }
+          }
         },
         verificationFailed: (FirebaseAuthException e) {
           debugPrint('FirebaseAuthException during phone verify [${e.code}]: ${e.message}');
           if (mounted) {
             setState(() => _busy = false);
-            final desc = e.message != null && e.message!.isNotEmpty ? ': ${e.message}' : '';
-            toast(context, 'Verification failed [${e.code}]$desc');
+            toast(context, 'Verification failed: ${friendlyAuthError(e)}');
           }
         },
         codeSent: (String verificationId, int? resendToken) {
@@ -123,7 +144,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _busy = false);
-        toast(context, 'Error requesting code: $e');
+        toast(context, 'Error requesting code: ${friendlyAuthError(e)}');
       }
     }
   }
@@ -160,12 +181,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } on FirebaseAuthException catch (e) {
       if (mounted) {
         setState(() => _busy = false);
-        toast(context, 'Invalid code: ${e.message ?? e.code}');
+        toast(context, friendlyAuthError(e));
       }
     } catch (e) {
       if (mounted) {
         setState(() => _busy = false);
-        toast(context, 'Verification failed: $e');
+        toast(context, 'Verification failed: ${friendlyAuthError(e)}');
       }
     }
   }
@@ -354,6 +375,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 32),
 
+          if (!FirebaseStatus.ready) ...[
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                kSignInUnavailableMessage,
+                style: TextStyle(fontSize: 12.5, height: 1.35),
+              ),
+            ),
+          ],
+
           // Google Sign-In Button
           OutlinedButton(
             style: OutlinedButton.styleFrom(
@@ -362,7 +399,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               backgroundColor: Theme.of(context).cardColor,
             ),
-            onPressed: _busy ? null : _signInWithGoogle,
+            onPressed: (_busy || !FirebaseStatus.ready) ? null : _signInWithGoogle,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -404,12 +441,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
               icon: const Icon(Icons.phone_android, size: 20),
               label: const Text('Use Phone Number'),
-              onPressed: () => setState(() => _showPhoneInput = true),
+              onPressed: !FirebaseStatus.ready ? null : () => setState(() => _showPhoneInput = true),
             ),
           ] else ...[
             TextField(
               controller: _phone,
               keyboardType: TextInputType.phone,
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[+\d\s\-\(\)]'))],
               autofocus: true,
               decoration: const InputDecoration(
                 labelText: 'Phone number',
@@ -469,6 +507,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           TextField(
             controller: _otp,
             keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             maxLength: 6,
             autofocus: true,
             textAlign: TextAlign.center,

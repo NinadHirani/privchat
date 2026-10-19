@@ -4,10 +4,13 @@ import 'package:image_picker/image_picker.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../../core/constants/auth_config.dart';
 import '../../core/crypto/crypto.dart';
 import '../../core/services/app_core.dart';
+import '../../core/services/auth_helpers.dart';
 import '../../core/services/directory_service.dart';
 import '../../core/storage/media_store.dart';
+import '../../core/services/firebase_status.dart';
 import '../../core/storage/secure_store.dart';
 import '../../core/constants/app_version.dart';
 import '../media/media_utils.dart';
@@ -70,8 +73,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _linkGoogle() async {
+    if (!FirebaseStatus.ready) {
+      return toast(context, kSignInUnavailableMessage);
+    }
     try {
-      final googleSignIn = GoogleSignIn();
+      final googleSignIn = GoogleSignIn(serverClientId: kGoogleWebClientId);
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) return;
       final googleAuth = await googleUser.authentication;
@@ -79,7 +85,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-      final userCred = await FirebaseAuth.instance.signInWithCredential(credential);
+      // Link the Google account to the signed-in identity when one exists,
+      // so the existing identity is kept; fall back to a plain sign-in when
+      // the credential already belongs to another Firebase user.
+      final UserCredential userCred;
+      final current = FirebaseAuth.instance.currentUser;
+      if (current == null) {
+        userCred = await FirebaseAuth.instance.signInWithCredential(credential);
+      } else {
+        try {
+          userCred = await current.linkWithCredential(credential);
+        } on FirebaseAuthException catch (e) {
+          if (e.code == 'credential-already-in-use' || e.code == 'email-already-in-use') {
+            userCred = await FirebaseAuth.instance.signInWithCredential(credential);
+          } else {
+            rethrow;
+          }
+        }
+      }
       final email = userCred.user?.email ?? googleUser.email;
       final photo = userCred.user?.photoURL ?? googleUser.photoUrl;
 
@@ -102,13 +125,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         toast(context, 'Connected Google account: $email');
       }
     } catch (e) {
-      if (mounted) toast(context, 'Failed to connect Google: $e');
+      if (mounted) {
+        // A user-initiated cancellation is not an error: return quietly.
+        if (!isAuthCancelled(e)) {
+          toast(context, 'Failed to connect Google: ${friendlyAuthError(e)}');
+        }
+      }
     }
   }
 
   Future<void> _linkPhone() async {
     final current = core.db.kvGet('user_phone') ?? '';
-    final ph = await promptText(context, 'Enter Phone Number', initial: current, hint: '+1 234 567 8900');
+    final ph = await promptText(context, 'Enter Phone Number', initial: current, hint: '+91 9876543210');
     if (ph == null) return;
     final cleaned = ph.trim();
     if (cleaned.isEmpty) {
@@ -116,18 +144,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) setState(() {});
       return;
     }
-    core.db.kvSet('user_phone', cleaned);
+    // Normalize into E.164 so the published directory hash matches the one
+    // computed at onboarding; reject anything that cannot be a valid number.
+    final normalized = normalizeE164(cleaned);
+    if (normalized == null) {
+      if (mounted) {
+        toast(context, 'Enter a valid phone number with country code, e.g. +91 9876543210');
+      }
+      return;
+    }
+    core.db.kvSet('user_phone', normalized);
     await DirectoryService.I.publishIdentity(
       userId: core.identity.userId,
       edPublicKey: Crypto.b64e(core.identity.edPk),
       displayName: core.displayName,
-      phone: cleaned,
+      phone: normalized,
       email: core.db.kvGet('user_email'),
       photoUrl: core.db.kvGet('user_photo_url'),
     );
     if (mounted) {
       setState(() {});
-      toast(context, 'Phone number updated');
+      toast(context, 'Phone number updated: $normalized');
     }
   }
 

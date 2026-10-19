@@ -9,8 +9,7 @@ import 'ui/chats/chat_screen.dart';
 import 'ui/home/home_screen.dart';
 import 'ui/onboarding/onboarding_screen.dart';
 import 'ui/settings/lock_screen.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'core/services/firebase_status.dart';
 import 'ui/theme.dart';
 
 final navKey = GlobalKey<NavigatorState>();
@@ -18,13 +17,10 @@ final navKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } catch (e) {
-    debugPrint('Firebase initialization notice: $e');
-  }
+  // Firebase is optional: Pritoy runs fully offline with a local identity.
+  // FirebaseStatus records success/failure so sign-in flows degrade
+  // gracefully instead of failing at button-tap time.
+  await FirebaseStatus.ensureInitialized();
   runApp(const PrivChatApp());
 }
 

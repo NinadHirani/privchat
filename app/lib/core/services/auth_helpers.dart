@@ -20,7 +20,8 @@ String? normalizeE164(String raw) {
 /// (Android and iOS surface cancellations through different error codes).
 bool isAuthCancelled(Object error) {
   if (error is PlatformException) {
-    if (error.code == 'sign_in_canceled' || error.code == 'canceled') return true;
+    if (error.code == 'sign_in_canceled' || error.code == 'canceled')
+      return true;
     final details = error.details?.toString() ?? '';
     if (error.code == 'sign_in_failed' &&
         (details.contains('12501') ||
@@ -28,7 +29,8 @@ bool isAuthCancelled(Object error) {
       return true;
     }
   }
-  if (error is FirebaseAuthException && error.code == 'user-cancelled') return true;
+  if (error is FirebaseAuthException && error.code == 'user-cancelled')
+    return true;
   return false;
 }
 

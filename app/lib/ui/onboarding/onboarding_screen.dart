@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/services/app_core.dart';
 import '../theme.dart';
@@ -17,14 +18,56 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _phone = TextEditingController();
   final _otp = TextEditingController();
 
-  int _step = 0; // 0: Welcome slides, 1: Phone input, 2: OTP, 3: Profile setup, 4: Permissions
+  int _step = 0; // 0: Welcome slides, 1: Auth choice / Phone, 2: OTP, 3: Profile setup, 4: Permissions
   int _slidePage = 0;
   bool _busy = false;
+  bool _showPhoneInput = false;
+
   String _confirmedPhone = '';
+  String? _googleEmail;
+  String? _photoUrl;
   String? _verificationId;
   int? _resendToken;
   bool _notifGranted = false;
   bool _callGranted = false;
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _busy = true);
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        setState(() => _busy = false);
+        return; // user cancelled
+      }
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      final userCred = await FirebaseAuth.instance.signInWithCredential(credential);
+      final fbUser = userCred.user;
+
+      setState(() {
+        _googleEmail = fbUser?.email ?? googleUser.email;
+        _photoUrl = fbUser?.photoURL ?? googleUser.photoUrl;
+        if (googleUser.displayName != null && googleUser.displayName!.isNotEmpty) {
+          _name.text = googleUser.displayName!;
+        }
+        _busy = false;
+        _step = 3; // jump straight to profile setup with name/avatar pre-filled
+      });
+
+      if (mounted) {
+        toast(context, 'Signed in as ${_googleEmail ?? 'Google user'}');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _busy = false);
+        toast(context, 'Google Sign-In failed: $e');
+      }
+    }
+  }
 
   Future<void> _requestOtp({bool isResend = false}) async {
     final raw = _phone.text.trim();
@@ -43,7 +86,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         timeout: const Duration(seconds: 60),
         forceResendingToken: isResend ? _resendToken : null,
         verificationCompleted: (PhoneAuthCredential credential) async {
-          // Automatic SMS retrieval or instant verification on Android
           try {
             await FirebaseAuth.instance.signInWithCredential(credential);
             if (mounted) {
@@ -167,7 +209,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (n.isEmpty) return toast(context, 'Enter a name your friends will recognise');
     setState(() => _busy = true);
     try {
-      await AppCore.boot(newName: n, phone: _confirmedPhone);
+      await AppCore.boot(
+        newName: n,
+        phone: _confirmedPhone,
+        email: _googleEmail,
+        photoUrl: _photoUrl,
+      );
       widget.onDone();
     } catch (e) {
       if (mounted) toast(context, 'Setup failed: $e');
@@ -212,7 +259,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       case 0:
         return _buildWelcomeSlides();
       case 1:
-        return _buildPhoneStep();
+        return _buildAuthChoiceStep();
       case 2:
         return _buildOtpStep();
       case 3:
@@ -228,7 +275,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       _info('assets/icon/app_icon.png', 'Private by design',
           'End-to-end encrypted with libsodium. Serverless on LAN, with zero-knowledge relay over the internet. Nobody can read your messages or listen to your calls.'),
       _info(Icons.contacts, 'Talk to Google Contacts',
-          'Verify your phone number once like WhatsApp. Pritoy discovers which of your saved Google contacts are on Pritoy and lets you invite others with 1 tap.'),
+          'Sign in with Google or verify your phone number. PrivChat automatically matches contacts who are on PrivChat and lets you invite others with 1 tap.'),
       _info(Icons.wifi_tethering, 'Works offline & online',
           'Direct P2P over Wi-Fi, hotspot, or Wi-Fi Direct with zero internet — and seamless cloud relay when you are across the city or world.'),
     ];
@@ -277,49 +324,122 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _buildPhoneStep() {
+  Widget _buildAuthChoiceStep() {
     return Padding(
-      key: const ValueKey('phone'),
-      padding: const EdgeInsets.all(24),
+      key: const ValueKey('auth_choice'),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 32),
-          const Icon(Icons.phone_android, size: 64, color: AppTheme.mustardBrown),
-          const SizedBox(height: 16),
-          const Text('Enter your phone number',
-              textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 24),
+          const Center(
+            child: CircleAvatar(
+              radius: 36,
+              backgroundColor: AppTheme.mustardBrown,
+              child: Icon(Icons.lock_person_outlined, size: 40, color: Colors.white),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Connect & Discover',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 8),
           const Text(
-            'Pritoy will verify your number so your Google Contacts can find and message you.',
+            'Connect with Google or phone so your contacts can message you securely. Your data stays end-to-end encrypted.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
           ),
-          const SizedBox(height: 28),
-          TextField(
-            controller: _phone,
-            keyboardType: TextInputType.phone,
-            autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Phone number',
-              hintText: '+1 234 567 8900',
-              prefixIcon: Icon(Icons.dialpad),
-              border: OutlineInputBorder(),
+          const SizedBox(height: 32),
+
+          // Google Sign-In Button
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+              side: BorderSide(color: Colors.grey.withOpacity(0.35)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              backgroundColor: Theme.of(context).cardColor,
             ),
-            onSubmitted: (_) => _requestOtp(),
+            onPressed: _busy ? null : _signInWithGoogle,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.network(
+                  'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+                  width: 20,
+                  height: 20,
+                  errorBuilder: (_, __, ___) => const Icon(Icons.account_circle, color: Colors.redAccent, size: 22),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Continue with Google',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppTheme.mustardBrown, minimumSize: const Size.fromHeight(48)),
-            onPressed: _busy ? null : _requestOtp,
-            child: _busy
-                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Send Verification Code'),
+
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(child: Divider(color: Colors.grey.withOpacity(0.3))),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text('OR', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
+              Expanded(child: Divider(color: Colors.grey.withOpacity(0.3))),
+            ],
           ),
+          const SizedBox(height: 20),
+
+          // Phone authentication section
+          if (!_showPhoneInput) ...[
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.mustardBrown,
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(Icons.phone_android, size: 20),
+              label: const Text('Use Phone Number'),
+              onPressed: () => setState(() => _showPhoneInput = true),
+            ),
+          ] else ...[
+            TextField(
+              controller: _phone,
+              keyboardType: TextInputType.phone,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Phone number',
+                hintText: '+1 234 567 8900',
+                prefixIcon: Icon(Icons.dialpad),
+                border: OutlineInputBorder(),
+              ),
+              onSubmitted: (_) => _requestOtp(),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.mustardBrown,
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: _busy ? null : _requestOtp,
+              child: _busy
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Send Verification Code'),
+            ),
+          ],
+
           const Spacer(),
           TextButton(
-            onPressed: _skipPhone,
+            onPressed: _busy ? null : _skipPhone,
             child: const Text('Skip (Use offline identity only)', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: _busy ? null : _restore,
+            child: const Text('Restore from recovery key', style: TextStyle(fontSize: 13)),
           ),
         ],
       ),
@@ -400,15 +520,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 32),
-          const CircleAvatar(
-            radius: 36,
-            backgroundColor: AppTheme.mustardBrown,
-            child: Icon(Icons.person, size: 40, color: Colors.white),
+          Center(
+            child: _photoUrl != null && _photoUrl!.isNotEmpty
+                ? CircleAvatar(
+                    radius: 38,
+                    backgroundImage: NetworkImage(_photoUrl!),
+                  )
+                : const CircleAvatar(
+                    radius: 38,
+                    backgroundColor: AppTheme.mustardBrown,
+                    child: Icon(Icons.person, size: 44, color: Colors.white),
+                  ),
           ),
           const SizedBox(height: 16),
           const Text('Your Profile', textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          const Text('Choose the name your contacts will see.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+          Text(
+            _googleEmail != null ? 'Signed in with $_googleEmail' : 'Choose the name your contacts will see.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.grey),
+          ),
           const SizedBox(height: 28),
           TextField(
             controller: _name,
@@ -451,7 +582,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const SizedBox(height: 16),
           const Text('Permissions & Standby', textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          const Text('Pritoy runs serverless and offline. We only request permissions necessary to keep your communications private and reliable.',
+          const Text('PrivChat runs serverless and offline. We only request permissions necessary to keep your communications private and reliable.',
               textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4)),
           const SizedBox(height: 28),
           _permTile(

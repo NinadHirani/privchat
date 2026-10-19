@@ -12,6 +12,7 @@ import '../storage/secure_store.dart';
 import '../../models/models.dart';
 import '../../ui/theme_manager.dart';
 import 'call_service.dart';
+import 'directory_service.dart';
 import 'group_service.dart';
 import 'message_service.dart';
 import 'notification_service.dart';
@@ -46,7 +47,13 @@ class AppCore extends ChangeNotifier {
   }
 
   /// Boot with the stored identity, or create one when [newName] is given, or restore from [restoreSeed].
-  static Future<AppCore> boot({String? newName, Uint8List? restoreSeed, String? phone}) async {
+  static Future<AppCore> boot({
+    String? newName,
+    Uint8List? restoreSeed,
+    String? phone,
+    String? email,
+    String? photoUrl,
+  }) async {
     if (_i != null) return _i!;
     await Crypto.init();
     final c = AppCore._();
@@ -62,6 +69,12 @@ class AppCore extends ChangeNotifier {
     c.db = await AppDb.open(await SecureStore.dbKey());
     if (phone != null && phone.isNotEmpty) {
       c.db.kvSet('user_phone', phone);
+    }
+    if (email != null && email.isNotEmpty) {
+      c.db.kvSet('user_email', email);
+    }
+    if (photoUrl != null && photoUrl.isNotEmpty) {
+      c.db.kvSet('user_photo_url', photoUrl);
     }
     ThemeManager.I.init();
     await MediaStore.init();
@@ -100,6 +113,22 @@ class AppCore extends ChangeNotifier {
         await _bg.invokeMethod('start'); // Android foreground service + multicast lock
       } catch (_) {}
     }
+
+    // Publish identity to privacy-preserving online directory
+    final curPhone = c.db.kvGet('user_phone') ?? phone;
+    final curEmail = c.db.kvGet('user_email') ?? email;
+    final curPhoto = c.db.kvGet('user_photo_url') ?? photoUrl;
+    if ((curPhone != null && curPhone.isNotEmpty) || (curEmail != null && curEmail.isNotEmpty)) {
+      DirectoryService.I.publishIdentity(
+        userId: c.identity.userId,
+        edPublicKey: Crypto.b64e(c.identity.edPk),
+        displayName: c.displayName,
+        phone: curPhone,
+        email: curEmail,
+        photoUrl: curPhoto,
+      );
+    }
+
     return c;
   }
 

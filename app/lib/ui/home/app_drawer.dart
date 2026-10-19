@@ -33,7 +33,11 @@ class AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final core = AppCore.I;
     final isDark = AppTheme.isDark(context);
-    final userPhone = core.db.kvGet('user_phone') ?? 'Offline Identity';
+    final userPhone = core.db.kvGet('user_phone');
+    final userEmail = core.db.kvGet('user_email');
+    final userHandle = (userPhone != null && userPhone.isNotEmpty)
+        ? userPhone
+        : ((userEmail != null && userEmail.isNotEmpty) ? userEmail : 'Offline Identity');
 
     return Drawer(
       child: Column(
@@ -81,7 +85,7 @@ class AppDrawer extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      userPhone,
+                      userHandle,
                       style: const TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                     const SizedBox(width: 8),

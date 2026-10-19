@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import '../../core/crypto/crypto.dart';
 import '../../core/services/app_core.dart';
+import '../../core/services/directory_service.dart';
 import '../../core/storage/media_store.dart';
 import '../../core/storage/secure_store.dart';
 import '../media/media_utils.dart';
@@ -64,6 +68,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _linkGoogle() async {
+    try {
+      final googleSignIn = GoogleSignIn();
+      final googleUser = await googleSignIn.signIn();
+      if (googleUser == null) return;
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      final userCred = await FirebaseAuth.instance.signInWithCredential(credential);
+      final email = userCred.user?.email ?? googleUser.email;
+      final photo = userCred.user?.photoURL ?? googleUser.photoUrl;
+
+      core.db.kvSet('user_email', email);
+      if (photo != null && photo.isNotEmpty) {
+        core.db.kvSet('user_photo_url', photo);
+      }
+
+      await DirectoryService.I.publishIdentity(
+        userId: core.identity.userId,
+        edPublicKey: Crypto.b64e(core.identity.edPk),
+        displayName: core.displayName,
+        phone: core.db.kvGet('user_phone'),
+        email: email,
+        photoUrl: photo,
+      );
+
+      if (mounted) {
+        setState(() {});
+        toast(context, 'Connected Google account: $email');
+      }
+    } catch (e) {
+      if (mounted) toast(context, 'Failed to connect Google: $e');
+    }
+  }
+
+  Future<void> _linkPhone() async {
+    final current = core.db.kvGet('user_phone') ?? '';
+    final ph = await promptText(context, 'Enter Phone Number', initial: current, hint: '+1 234 567 8900');
+    if (ph == null) return;
+    final cleaned = ph.trim();
+    if (cleaned.isEmpty) {
+      core.db.kvSet('user_phone', '');
+      if (mounted) setState(() {});
+      return;
+    }
+    core.db.kvSet('user_phone', cleaned);
+    await DirectoryService.I.publishIdentity(
+      userId: core.identity.userId,
+      edPublicKey: Crypto.b64e(core.identity.edPk),
+      displayName: core.displayName,
+      phone: cleaned,
+      email: core.db.kvGet('user_email'),
+      photoUrl: core.db.kvGet('user_photo_url'),
+    );
+    if (mounted) {
+      setState(() {});
+      toast(context, 'Phone number updated');
+    }
+  }
+
   Future<void> _wipe() async {
     if (!await confirm(context, 'Erase everything?',
         'Your identity, contacts, messages and media will be permanently destroyed on this phone. This cannot be undone.',
@@ -75,34 +141,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) => ListenableBuilder(
         listenable: core,
-        builder: (context, _) => Scaffold(
-          appBar: AppBar(title: const Text('Settings')),
-          body: ListView(children: [
-            ListTile(
-              contentPadding: const EdgeInsets.all(16),
-              leading: GestureDetector(
+        builder: (context, _) {
+          final userPhone = core.db.kvGet('user_phone');
+          final userEmail = core.db.kvGet('user_email');
+          return Scaffold(
+            appBar: AppBar(title: const Text('Settings')),
+            body: ListView(children: [
+              ListTile(
+                contentPadding: const EdgeInsets.all(16),
+                leading: GestureDetector(
+                  onTap: () async {
+                    final x = await ImagePicker().pickImage(source: ImageSource.gallery);
+                    if (x == null) return;
+                    await core.updateProfile(avatar: await MediaUtils.makeAvatar(x.path));
+                  },
+                  child: Avatar(name: core.displayName, bytes: core.avatar, radius: 32),
+                ),
+                title: Text(core.displayName, style: const TextStyle(fontSize: 20)),
+                subtitle: Text(core.about),
+                trailing: const Icon(Icons.edit),
                 onTap: () async {
-                  final x = await ImagePicker().pickImage(source: ImageSource.gallery);
-                  if (x == null) return;
-                  await core.updateProfile(avatar: await MediaUtils.makeAvatar(x.path));
+                  final n = await promptText(context, 'Your name', initial: core.displayName, maxLength: 40);
+                  if (n != null && n.isNotEmpty) await core.updateProfile(name: n);
+                  if (!context.mounted) return;
+                  final a = await promptText(context, 'About', initial: core.about, maxLength: 140);
+                  if (a != null) await core.updateProfile(about: a);
                 },
-                child: Avatar(name: core.displayName, bytes: core.avatar, radius: 32),
               ),
-              title: Text(core.displayName, style: const TextStyle(fontSize: 20)),
-              subtitle: Text(core.about),
-              trailing: const Icon(Icons.edit),
-              onTap: () async {
-                final n = await promptText(context, 'Your name', initial: core.displayName, maxLength: 40);
-                if (n != null && n.isNotEmpty) await core.updateProfile(name: n);
-                if (!context.mounted) return;
-                final a = await promptText(context, 'About', initial: core.about, maxLength: 140);
-                if (a != null) await core.updateProfile(about: a);
-              },
-            ),
-            if (core.avatar != null)
-              TextButton(onPressed: () => core.updateProfile(clearAvatar: true), child: const Text('Remove profile photo')),
-            const Divider(),
-            _section('Appearance & Customization'),
+              if (core.avatar != null)
+                TextButton(onPressed: () => core.updateProfile(clearAvatar: true), child: const Text('Remove profile photo')),
+              const Divider(),
+              _section('Account & Discovery'),
+              ListTile(
+                leading: const Icon(Icons.account_circle_outlined, color: AppTheme.mustardBrown),
+                title: const Text('Google Account'),
+                subtitle: Text(userEmail != null && userEmail.isNotEmpty ? userEmail : 'Not linked (tap to sign in)'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _linkGoogle,
+              ),
+              ListTile(
+                leading: const Icon(Icons.phone_android, color: AppTheme.mustardBrown),
+                title: const Text('Phone Number'),
+                subtitle: Text(userPhone != null && userPhone.isNotEmpty ? userPhone : 'Not linked (tap to add)'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _linkPhone,
+              ),
+              const Divider(),
+              _section('Appearance & Customization'),
             ListTile(
               leading: const Icon(Icons.palette_outlined),
               title: const Text('Chat Appearance & Wallpapers'),

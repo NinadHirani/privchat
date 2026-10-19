@@ -109,7 +109,10 @@ class _NewChatScreenState extends State<NewChatScreen> {
           filteredPrivChat = filteredPrivChat.where((c) => c.name.toLowerCase().contains(_q)).toList();
           filteredNearby = filteredNearby.where((p) => p.name.toLowerCase().contains(_q)).toList();
           filteredGoogle = filteredGoogle
-              .where((c) => c.displayName.toLowerCase().contains(_q) || c.phone.contains(_q))
+              .where((c) =>
+                  c.displayName.toLowerCase().contains(_q) ||
+                  c.phone.contains(_q) ||
+                  c.email.toLowerCase().contains(_q))
               .toList();
         }
 
@@ -356,7 +359,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
           ),
         ],
       ),
-      subtitle: Text(gc.phone.isNotEmpty ? gc.phone : 'Google Contact'),
+      subtitle: Text(gc.phone.isNotEmpty ? gc.phone : (gc.email.isNotEmpty ? gc.email : 'Google Contact')),
       onTap: () {
         if (gc.privchatUserId != null) {
           _open(gc.privchatUserId!, gc.displayName);
@@ -374,7 +377,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
               child: Text(gc.initials, style: const TextStyle(color: Colors.white)),
             ),
       title: Text(gc.displayName),
-      subtitle: Text(gc.phone.isNotEmpty ? gc.phone : 'Google Contact'),
+      subtitle: Text(gc.phone.isNotEmpty ? gc.phone : (gc.email.isNotEmpty ? gc.email : 'Google Contact')),
       trailing: OutlinedButton(
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: AppTheme.amberAccent, width: 1.5),

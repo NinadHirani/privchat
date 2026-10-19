@@ -17,6 +17,7 @@ import 'group_service.dart';
 import 'message_service.dart';
 import 'notification_service.dart';
 import 'status_service.dart';
+import 'update_service.dart';
 
 /// Composition root. One instance for the app's lifetime; UI listens via ListenableBuilder.
 class AppCore extends ChangeNotifier {
@@ -35,6 +36,7 @@ class AppCore extends ChangeNotifier {
   late final StatusService status;
   late final CallService calls;
   late final NotificationService notifications;
+  late final UpdateService updates;
   String displayName = '';
   Uint8List? avatar;
   String about = 'Hey there! I am using Pritoy.';
@@ -92,6 +94,7 @@ class AppCore extends ChangeNotifier {
     c.groups = GroupService(c);
     c.status = StatusService(c);
     c.calls = CallService(c);
+    c.updates = UpdateService();
     c.files.canServe = c.messages.canServeFile;
     c.files.progress.listen((_) => c.notify());
     c.cm.events.listen((e) {

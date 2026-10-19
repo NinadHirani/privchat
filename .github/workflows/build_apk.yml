@@ -40,6 +40,7 @@ jobs:
           flutter create --org app.privchat --project-name privchat --platforms android,ios .
           python3 tool/setup_platforms.py
           flutter pub get
+          flutter test
 
       - name: Set up Android SDK platform 36
         run: |
@@ -63,12 +64,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG_NAME="v1.0.0"
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG_NAME="${{ github.ref_name }}"
+          else
+            APP_VER=$(grep '^version:' app/pubspec.yaml | head -n 1 | awk '{print $2}' | cut -d'+' -f1)
+            TAG_NAME="v${APP_VER}"
+          fi
+          echo "Target Release Tag: $TAG_NAME"
+
+          # Ensure the release exists before uploading
+          gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$TAG_NAME" --title "Pritoy $TAG_NAME" --notes "Automatic release for Pritoy $TAG_NAME" --repo "$GITHUB_REPOSITORY"
+
           cd app/build/app/outputs/flutter-apk/
-          
-          # Upload all split APKs (arm64-v8a, armeabi-v7a, x86_64)
+
+          # Upload split APKs with both Pritoy- prefixed names and standard names
           gh release upload "$TAG_NAME" \
             app-arm64-v8a-release.apk#Pritoy-arm64-v8a-release.apk \
             app-armeabi-v7a-release.apk#Pritoy-armeabi-v7a-release.apk \
             app-x86_64-release.apk#Pritoy-x86_64-release.apk \
             --repo "$GITHUB_REPOSITORY" --clobber
+

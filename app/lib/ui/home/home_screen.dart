@@ -28,6 +28,16 @@ class _HomeScreenState extends State<HomeScreen> {
   static const _categories = ['All', 'Personal', 'Groups', 'Unread'];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        core.updates.checkOnLaunch(context);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = AppTheme.isDark(context);
 

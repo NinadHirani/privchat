@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../core/constants/app_version.dart';
 import '../../core/services/app_core.dart';
 import '../calls/calls_tab.dart';
 import '../chats/chat_screen.dart';
@@ -186,15 +187,52 @@ class AppDrawer extends StatelessWidget {
             ),
           ),
 
-          // Version info
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Pritoy for Android & iOS', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                Text('v1.0.0', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-              ],
+          // Version info & quick update check
+          InkWell(
+            onTap: () async {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Checking for updates…'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+              final res = await core.updates.check(silent: false);
+              if (!context.mounted) return;
+              if (res.hasUpdate && res.release != null && res.targetAsset != null) {
+                core.updates.showUpdateDialog(context: context, result: res);
+              } else if (res.error != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Update check failed: ${res.error}. Check your internet connection.'),
+                    backgroundColor: Colors.red.shade800,
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Pritoy is up to date (v${AppVersion.current})'),
+                    backgroundColor: AppTheme.mustardBrown,
+                  ),
+                );
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Pritoy for Android & iOS', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('v${AppVersion.current}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                      const SizedBox(width: 4),
+                      Icon(Icons.refresh_rounded, size: 13, color: Colors.grey.shade600),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],

@@ -23,6 +23,8 @@ Install Pritoy directly on your Android phone without needing to compile anythin
 | **Universal (All CPUs)** | [Direct Download](https://github.com/NinadHirani/privchat/releases/download/v1.0.0/app-release.apk) | [⚡ Fast Mirror](https://ghfast.top/https://github.com/NinadHirani/privchat/releases/download/v1.0.0/app-release.apk) | **118 MB** | Works on any device |
 
 > **Tip:** If your standard GitHub download is slow or throttled, click the **⚡ Fast Mirror** link for high-speed download.
+>
+> 🔄 **In-App Auto-Updates:** Once installed, Pritoy automatically detects new releases on startup and downloads/installs updates directly inside the app with fast CDN failover — users never need to revisit the repository to update.
 
 ## Build (needs Flutter ≥ 3.22; Android Studio; Xcode on a Mac for iOS)
 ```bash

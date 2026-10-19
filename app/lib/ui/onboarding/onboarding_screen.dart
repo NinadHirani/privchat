@@ -98,10 +98,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           } catch (_) {}
         },
         verificationFailed: (FirebaseAuthException e) {
+          debugPrint('FirebaseAuthException during phone verify [${e.code}]: ${e.message}');
           if (mounted) {
             setState(() => _busy = false);
-            final msg = e.message ?? e.code;
-            toast(context, 'Verification failed: $msg');
+            final desc = e.message != null && e.message!.isNotEmpty ? ': ${e.message}' : '';
+            toast(context, 'Verification failed [${e.code}]$desc');
           }
         },
         codeSent: (String verificationId, int? resendToken) {

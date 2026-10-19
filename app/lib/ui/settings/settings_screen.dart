@@ -9,6 +9,7 @@ import '../../core/services/app_core.dart';
 import '../../core/services/directory_service.dart';
 import '../../core/storage/media_store.dart';
 import '../../core/storage/secure_store.dart';
+import '../../core/constants/app_version.dart';
 import '../media/media_utils.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -273,7 +274,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () => showAboutDialog(
                 context: context,
                 applicationName: 'Pritoy',
-                applicationVersion: '1.0.0',
+                applicationVersion: 'v${AppVersion.current}',
                 applicationIcon: ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: Image.asset('assets/icon/app_icon.png', width: 48, height: 48),
@@ -290,14 +291,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             ListTile(
+              leading: const Icon(Icons.system_update_rounded),
+              title: const Text('Check for updates'),
+              subtitle: Text('Current version: v${AppVersion.current}'),
+              trailing: core.updates.isChecking
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.chevron_right),
+              onTap: core.updates.isChecking ? null : () => _manualCheckForUpdates(context),
+            ),
+            ListTile(
               leading: const Icon(Icons.delete_forever, color: Colors.red),
               title: const Text('Erase everything', style: TextStyle(color: Colors.red)),
               onTap: _wipe,
             ),
             const SizedBox(height: 32),
           ]),
+        );
+      },
+    );
+
+  Future<void> _manualCheckForUpdates(BuildContext context) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Checking for updates…'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+
+    final res = await core.updates.check(silent: false);
+    if (!context.mounted) return;
+
+    if (res.hasUpdate && res.release != null && res.targetAsset != null) {
+      core.updates.showUpdateDialog(context: context, result: res);
+    } else if (res.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Update check failed: ${res.error}. Check your internet connection.'),
+          backgroundColor: Colors.red.shade800,
         ),
       );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pritoy is up to date (v${AppVersion.current})'),
+          backgroundColor: AppTheme.mustardBrown,
+        ),
+      );
+    }
+  }
 
   Widget _section(String t) => Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),

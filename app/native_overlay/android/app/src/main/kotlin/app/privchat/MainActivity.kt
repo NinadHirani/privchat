@@ -29,6 +29,15 @@ class MainActivity : FlutterFragmentActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        MethodChannel(messenger, "privchat/system").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "getSupportedAbis" -> {
+                    result.success(android.os.Build.SUPPORTED_ABIS.toList())
+                }
+                else -> result.notImplemented()
+            }
+        }
         // Multipeer is iOS-only; Dart treats MissingPluginException as "not available".
     }
 

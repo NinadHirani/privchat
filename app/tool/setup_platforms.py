@@ -49,7 +49,14 @@ def android():
             s = s.replace("compileOptions {", "compileOptions {\n        isCoreLibraryDesugaringEnabled = true", 1)
         if "desugar_jdk_libs" not in s:
             s += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
-        open(kts, "w").write(s); say("patched build.gradle.kts (compileSdk 36, minSdk 24, desugaring, app id)")
+        if "com.google.gms.google-services" not in s:
+            if "plugins {" in s:
+                s = s.replace("plugins {", 'plugins {\n    id("com.google.gms.google-services")', 1)
+            else:
+                s += '\napply(plugin = "com.google.gms.google-services")\n'
+        if "privchat-release.jks" not in s:
+            s += '\nandroid {\n    signingConfigs {\n        create("release") {\n            keyAlias = "privchat"\n            keyPassword = "privchat123"\n            storeFile = file("privchat-release.jks")\n            storePassword = "privchat123"\n        }\n    }\n    buildTypes {\n        getByName("release") {\n            signingConfig = signingConfigs.getByName("release")\n        }\n    }\n}\n'
+        open(kts, "w").write(s); say("patched build.gradle.kts (compileSdk 36, minSdk 24, desugaring, app id, google-services, signing)")
     elif os.path.exists(groovy):
         s = open(groovy).read()
         s = re.sub(r"compileSdk(Version)?\s*=?\s*[^\n]+", "compileSdkVersion 36", s, count=1)
@@ -61,9 +68,28 @@ def android():
             s = s.replace("compileOptions {", "compileOptions {\n        coreLibraryDesugaringEnabled true", 1)
         if "desugar_jdk_libs" not in s:
             s += "\ndependencies {\n    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'\n}\n"
-        open(groovy, "w").write(s); say("patched build.gradle (compileSdk 36, minSdk 24, desugaring, app id)")
+        if "com.google.gms.google-services" not in s:
+            s += "\napply plugin: 'com.google.gms.google-services'\n"
+        if "privchat-release.jks" not in s:
+            s += "\nandroid {\n    signingConfigs {\n        release {\n            keyAlias 'privchat'\n            keyPassword 'privchat123'\n            storeFile file('privchat-release.jks')\n            storePassword 'privchat123'\n        }\n    }\n    buildTypes {\n        release {\n            signingConfig signingConfigs.release\n        }\n    }\n}\n"
+        open(groovy, "w").write(s); say("patched build.gradle (compileSdk 36, minSdk 24, desugaring, app id, google-services, signing)")
     else:
         say("WARNING: no app build.gradle found")
+
+    settings_kts = p("android", "settings.gradle.kts")
+    settings_groovy = p("android", "settings.gradle")
+    if os.path.exists(settings_kts):
+        sk = open(settings_kts).read()
+        if "com.google.gms.google-services" not in sk:
+            sk = re.sub(r'plugins\s*\{', 'plugins {\n    id("com.google.gms.google-services") version "4.4.2" apply false', sk, count=1)
+            open(settings_kts, "w").write(sk)
+            say("added google-services plugin to android/settings.gradle.kts")
+    elif os.path.exists(settings_groovy):
+        sg = open(settings_groovy).read()
+        if "com.google.gms.google-services" not in sg:
+            sg = re.sub(r'plugins\s*\{', 'plugins {\n    id "com.google.gms.google-services" version "4.4.2" apply false', sg, count=1)
+            open(settings_groovy, "w").write(sg)
+            say("added google-services plugin to android/settings.gradle")
 
     # Enforce compileSdk 36 on plugins/subprojects (e.g. bonsoir_android)
     root_kts = p("android", "build.gradle.kts")

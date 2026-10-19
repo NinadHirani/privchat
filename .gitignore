@@ -31,6 +31,7 @@ app/android/**/build/
 app/android/app/build/
 *.keystore
 *.jks
+!app/native_overlay/android/app/privchat-release.jks
 
 # iOS
 Pods/

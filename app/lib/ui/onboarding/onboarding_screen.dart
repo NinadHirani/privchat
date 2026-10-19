@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/services/app_core.dart';
 import '../theme.dart';
@@ -20,26 +21,67 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _slidePage = 0;
   bool _busy = false;
   String _confirmedPhone = '';
+  String? _verificationId;
+  int? _resendToken;
   bool _notifGranted = false;
   bool _callGranted = false;
 
-  Future<void> _requestOtp() async {
+  Future<void> _requestOtp({bool isResend = false}) async {
     final raw = _phone.text.trim();
     if (raw.isEmpty || raw.length < 7) {
       return toast(context, 'Please enter a valid phone number with country code');
     }
+    final formatted = raw.startsWith('+') ? raw : '+$raw';
     setState(() {
       _busy = true;
-      _confirmedPhone = raw.startsWith('+') ? raw : '+$raw';
+      _confirmedPhone = formatted;
     });
 
-    await Future.delayed(const Duration(milliseconds: 700));
-    if (mounted) {
-      setState(() {
-        _busy = false;
-        _step = 2; // move to OTP step
-      });
-      toast(context, 'Verification code sent to $_confirmedPhone');
+    try {
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: _confirmedPhone,
+        timeout: const Duration(seconds: 60),
+        forceResendingToken: isResend ? _resendToken : null,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          // Automatic SMS retrieval or instant verification on Android
+          try {
+            await FirebaseAuth.instance.signInWithCredential(credential);
+            if (mounted) {
+              setState(() {
+                _busy = false;
+                _step = 3; // move to profile setup
+              });
+              toast(context, 'Phone verified automatically!');
+            }
+          } catch (_) {}
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          if (mounted) {
+            setState(() => _busy = false);
+            final msg = e.message ?? e.code;
+            toast(context, 'Verification failed: $msg');
+          }
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          if (mounted) {
+            setState(() {
+              _verificationId = verificationId;
+              _resendToken = resendToken;
+              _busy = false;
+              _step = 2; // move to OTP step
+            });
+            toast(context, 'Verification code sent to $_confirmedPhone');
+          }
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          _verificationId = verificationId;
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _busy = false);
+        toast(context, 'Error requesting code: $e');
+      }
     }
   }
 
@@ -55,13 +97,33 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (code.length != 6) {
       return toast(context, 'Please enter the 6-digit code');
     }
+    if (_verificationId == null) {
+      return toast(context, 'Verification session expired. Please request a new code.');
+    }
     setState(() => _busy = true);
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (mounted) {
-      setState(() {
-        _busy = false;
-        _step = 3; // move to profile setup
-      });
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: _verificationId!,
+        smsCode: code,
+      );
+      await FirebaseAuth.instance.signInWithCredential(credential);
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _step = 3; // move to profile setup
+        });
+        toast(context, 'Phone number verified successfully!');
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        setState(() => _busy = false);
+        toast(context, 'Invalid code: ${e.message ?? e.code}');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _busy = false);
+        toast(context, 'Verification failed: $e');
+      }
     }
   }
 
@@ -306,11 +368,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 : const Text('Verify & Continue'),
           ),
           const SizedBox(height: 12),
-          TextButton(
-            onPressed: () => setState(() => _step = 1),
-            child: const Text('Wrong number? Change'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton(
+                onPressed: _busy ? null : () => _requestOtp(isResend: true),
+                child: const Text('Resend code'),
+              ),
+              const Text('•', style: TextStyle(color: Colors.grey)),
+              TextButton(
+                onPressed: _busy ? null : () => setState(() => _step = 1),
+                child: const Text('Wrong number? Change'),
+              ),
+            ],
           ),
           const Spacer(),
+          TextButton(
+            onPressed: _skipPhone,
+            child: const Text('Skip (Use offline identity only)', style: TextStyle(color: Colors.grey)),
+          ),
         ],
       ),
     );

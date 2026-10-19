@@ -50,6 +50,8 @@ dependencies:
   mobile_scanner: ^5.2.3
 
   # misc
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
   permission_handler: ^11.3.1
   flutter_local_notifications: ^17.2.3
   uuid: ^4.5.1

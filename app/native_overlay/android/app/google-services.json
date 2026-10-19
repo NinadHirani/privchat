@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "315683507801",
+    "project_id": "privchat-messenger-2026",
+    "storage_bucket": "privchat-messenger-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:315683507801:android:3695e72ece00817478eb48",
+        "android_client_info": {
+          "package_name": "app.privchat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCExWy6T5FBVaq6WchZwODAZKzc1HNgBI4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

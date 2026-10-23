@@ -88,7 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // Link the Google account to the signed-in identity when one exists,
       // so the existing identity is kept; fall back to a plain sign-in when
       // the credential already belongs to another Firebase user.
-      final UserCredential userCred;
+      UserCredential userCred;
       final current = FirebaseAuth.instance.currentUser;
       if (current == null) {
         userCred = await FirebaseAuth.instance.signInWithCredential(credential);
@@ -168,6 +168,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _linkEmail() async {
+    final current = core.db.kvGet('user_email') ?? '';
+    final em = await promptText(context, 'Enter Email Address', initial: current, hint: 'e.g. test@privchat.app');
+    if (em == null) return;
+    final cleaned = em.trim().toLowerCase();
+    if (cleaned.isEmpty) {
+      core.db.kvSet('user_email', '');
+      if (mounted) setState(() {});
+      return;
+    }
+    if (!cleaned.contains('@') || !cleaned.contains('.')) {
+      if (mounted) toast(context, 'Please enter a valid email address');
+      return;
+    }
+    core.db.kvSet('user_email', cleaned);
+    await DirectoryService.I.publishIdentity(
+      userId: core.identity.userId,
+      edPublicKey: Crypto.b64e(core.identity.edPk),
+      displayName: core.displayName,
+      phone: core.db.kvGet('user_phone'),
+      email: cleaned,
+      photoUrl: core.db.kvGet('user_photo_url'),
+    );
+    if (mounted) {
+      setState(() {});
+      toast(context, 'Email updated: $cleaned');
+    }
+  }
+
   Future<void> _wipe() async {
     if (!await confirm(context, 'Erase everything?',
         'Your identity, contacts, messages and media will be permanently destroyed on this phone. This cannot be undone.',
@@ -223,6 +252,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: Text(userPhone != null && userPhone.isNotEmpty ? userPhone : 'Not linked (tap to add)'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: _linkPhone,
+              ),
+              ListTile(
+                leading: const Icon(Icons.email_outlined, color: AppTheme.mustardBrown),
+                title: const Text('Email Address'),
+                subtitle: Text(userEmail != null && userEmail.isNotEmpty ? userEmail : 'Not linked (tap to set)'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _linkEmail,
               ),
               const Divider(),
               _section('Appearance & Customization'),

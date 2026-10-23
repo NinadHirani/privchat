@@ -21,11 +21,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _name = TextEditingController();
   final _phone = TextEditingController();
   final _otp = TextEditingController();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
 
   int _step = 0; // 0: Welcome slides, 1: Auth choice / Phone, 2: OTP, 3: Profile setup, 4: Permissions
   int _slidePage = 0;
   bool _busy = false;
   bool _showPhoneInput = false;
+  bool _showEmailInput = false;
 
   String _confirmedPhone = '';
   String? _googleEmail;
@@ -191,6 +194,70 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
+  Future<void> _signInWithEmail({String? dummyEmail, String? dummyPass}) async {
+    if (_busy) return;
+    final email = (dummyEmail ?? _email.text).trim().toLowerCase();
+    final password = (dummyPass ?? _password.text).trim().isNotEmpty
+        ? (dummyPass ?? _password.text).trim()
+        : 'Password123!';
+
+    if (email.isEmpty || !email.contains('@') || !email.contains('.')) {
+      return toast(context, 'Please enter a valid email address');
+    }
+
+    setState(() => _busy = true);
+
+    try {
+      UserCredential? userCred;
+      if (FirebaseStatus.ready) {
+        try {
+          userCred = await FirebaseAuth.instance.signInWithEmailAndPassword(
+            email: email,
+            password: password,
+          );
+        } on FirebaseAuthException catch (e) {
+          if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
+            try {
+              userCred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                email: email,
+                password: password,
+              );
+            } catch (createErr) {
+              debugPrint('Create email user failed: $createErr');
+            }
+          } else {
+            debugPrint('FirebaseAuth email notice [${e.code}]: ${e.message}');
+          }
+        } catch (e) {
+          debugPrint('Firebase email auth general notice: $e');
+        }
+      }
+
+      final fbUser = userCred?.user;
+      setState(() {
+        _googleEmail = fbUser?.email ?? email;
+        _photoUrl = fbUser?.photoURL;
+        if (_name.text.trim().isEmpty) {
+          final prefix = email.split('@').first;
+          _name.text = prefix.isNotEmpty
+              ? prefix[0].toUpperCase() + (prefix.length > 1 ? prefix.substring(1) : '')
+              : 'User';
+        }
+        _busy = false;
+        _step = 3; // jump straight to profile setup
+      });
+
+      if (mounted) {
+        toast(context, 'Signed in as $_googleEmail');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _busy = false);
+        toast(context, 'Sign-in failed: ${friendlyAuthError(e)}');
+      }
+    }
+  }
+
   Future<void> _checkPermissions() async {
     try {
       final notif = await Permission.notification.status;
@@ -347,13 +414,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildAuthChoiceStep() {
-    return Padding(
+    return SingleChildScrollView(
       key: const ValueKey('auth_choice'),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           const Center(
             child: CircleAvatar(
               radius: 36,
@@ -361,7 +428,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: Icon(Icons.lock_person_outlined, size: 40, color: Colors.white),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           const Text(
             'Connect & Discover',
             textAlign: TextAlign.center,
@@ -369,11 +436,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Connect with Google or phone so your contacts can message you securely. Your data stays end-to-end encrypted.',
+            'Connect with Google, phone, or dummy email so your contacts can message you securely. Your data stays end-to-end encrypted.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
           if (!FirebaseStatus.ready) ...[
             Container(
@@ -391,48 +458,37 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ],
 
-          // Google Sign-In Button
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
-              side: BorderSide(color: Colors.grey.withOpacity(0.35)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              backgroundColor: Theme.of(context).cardColor,
-            ),
-            onPressed: (_busy || !FirebaseStatus.ready) ? null : _signInWithGoogle,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.network(
-                  'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
-                  width: 20,
-                  height: 20,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.account_circle, color: Colors.redAccent, size: 22),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Continue with Google',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(child: Divider(color: Colors.grey.withOpacity(0.3))),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text('OR', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+          if (!_showPhoneInput && !_showEmailInput) ...[
+            // Google Sign-In Button
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+                side: BorderSide(color: Colors.grey.withOpacity(0.35)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                backgroundColor: Theme.of(context).cardColor,
               ),
-              Expanded(child: Divider(color: Colors.grey.withOpacity(0.3))),
-            ],
-          ),
-          const SizedBox(height: 20),
+              onPressed: (_busy || !FirebaseStatus.ready) ? null : _signInWithGoogle,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.network(
+                    'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+                    width: 20,
+                    height: 20,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.account_circle, color: Colors.redAccent, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Continue with Google',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
 
-          // Phone authentication section
-          if (!_showPhoneInput) ...[
+            const SizedBox(height: 12),
+
+            // Phone authentication button
             FilledButton.icon(
               style: FilledButton.styleFrom(
                 backgroundColor: AppTheme.mustardBrown,
@@ -441,9 +497,43 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
               icon: const Icon(Icons.phone_android, size: 20),
               label: const Text('Use Phone Number'),
-              onPressed: !FirebaseStatus.ready ? null : () => setState(() => _showPhoneInput = true),
+              onPressed: !FirebaseStatus.ready
+                  ? null
+                  : () => setState(() {
+                        _showPhoneInput = true;
+                        _showEmailInput = false;
+                      }),
             ),
-          ] else ...[
+
+            const SizedBox(height: 12),
+
+            // Email / Dummy mail authentication button
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                side: BorderSide(color: AppTheme.mustardBrown.withOpacity(0.5)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(Icons.mail_outline, size: 20, color: AppTheme.mustardBrown),
+              label: const Text('Use Email / Dummy Mail', style: TextStyle(color: AppTheme.mustardBrown)),
+              onPressed: () => setState(() {
+                _showEmailInput = true;
+                _showPhoneInput = false;
+              }),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Quick 1-tap dummy login pill
+            Center(
+              child: ActionChip(
+                avatar: const Icon(Icons.bolt, size: 16, color: Colors.amber),
+                label: const Text('1-Tap Dummy Login (test@privchat.app)', style: TextStyle(fontSize: 12)),
+                onPressed: _busy ? null : () => _signInWithEmail(dummyEmail: 'test@privchat.app', dummyPass: 'Password123!'),
+              ),
+            ),
+          ] else if (_showPhoneInput) ...[
+            // Phone input flow
             TextField(
               controller: _phone,
               keyboardType: TextInputType.phone,
@@ -451,7 +541,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               autofocus: true,
               decoration: const InputDecoration(
                 labelText: 'Phone number',
-                hintText: '+1 234 567 8900',
+                hintText: '+91 98765 43210',
                 prefixIcon: Icon(Icons.dialpad),
                 border: OutlineInputBorder(),
               ),
@@ -469,9 +559,63 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Text('Send Verification Code'),
             ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => setState(() => _showPhoneInput = false),
+              child: const Text('← Other sign-in options'),
+            ),
+          ] else if (_showEmailInput) ...[
+            // Email input flow
+            TextField(
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Email address',
+                hintText: 'e.g. test@privchat.app or user@mail.com',
+                prefixIcon: Icon(Icons.email_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _password,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Password (Optional)',
+                hintText: 'Default: Password123!',
+                prefixIcon: Icon(Icons.lock_outline),
+                border: OutlineInputBorder(),
+              ),
+              onSubmitted: (_) => _signInWithEmail(),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.mustardBrown,
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: _busy ? null : () => _signInWithEmail(),
+              child: _busy
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Continue with Email'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.flash_on, size: 16),
+              label: const Text('Fill & Sign in with test@privchat.app'),
+              onPressed: _busy ? null : () => _signInWithEmail(dummyEmail: 'test@privchat.app', dummyPass: 'Password123!'),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => setState(() => _showEmailInput = false),
+              child: const Text('← Other sign-in options'),
+            ),
           ],
 
-          const Spacer(),
+          const SizedBox(height: 24),
+          const Divider(),
           TextButton(
             onPressed: _busy ? null : _skipPhone,
             child: const Text('Skip (Use offline identity only)', style: TextStyle(color: Colors.grey)),

@@ -194,15 +194,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  Future<void> _signInWithEmail({String? dummyEmail, String? dummyPass}) async {
+  Future<void> _signInWithEmail() async {
     if (_busy) return;
-    final email = (dummyEmail ?? _email.text).trim().toLowerCase();
-    final password = (dummyPass ?? _password.text).trim().isNotEmpty
-        ? (dummyPass ?? _password.text).trim()
-        : 'Password123!';
+    final email = _email.text.trim().toLowerCase();
+    final password = _password.text.trim();
 
     if (email.isEmpty || !email.contains('@') || !email.contains('.')) {
       return toast(context, 'Please enter a valid email address');
+    }
+    if (password.isEmpty || password.length < 6) {
+      return toast(context, 'Password must be at least 6 characters');
     }
 
     setState(() => _busy = true);
@@ -224,12 +225,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               );
             } catch (createErr) {
               debugPrint('Create email user failed: $createErr');
+              rethrow;
             }
           } else {
-            debugPrint('FirebaseAuth email notice [${e.code}]: ${e.message}');
+            rethrow;
           }
-        } catch (e) {
-          debugPrint('Firebase email auth general notice: $e');
         }
       }
 
@@ -436,7 +436,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Connect with Google, phone, or dummy email so your contacts can message you securely. Your data stays end-to-end encrypted.',
+            'Connect with Google, phone, or email so your contacts can message you securely. Your data stays end-to-end encrypted.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
           ),
@@ -496,7 +496,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               icon: const Icon(Icons.phone_android, size: 20),
-              label: const Text('Use Phone Number'),
+              label: const Text('Continue with Phone Number'),
               onPressed: !FirebaseStatus.ready
                   ? null
                   : () => setState(() {
@@ -507,30 +507,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
             const SizedBox(height: 12),
 
-            // Email / Dummy mail authentication button
+            // Email authentication button
             OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(48),
-                side: BorderSide(color: AppTheme.mustardBrown.withOpacity(0.5)),
+                side: BorderSide(color: Colors.grey.withOpacity(0.35)),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              icon: const Icon(Icons.mail_outline, size: 20, color: AppTheme.mustardBrown),
-              label: const Text('Use Email / Dummy Mail', style: TextStyle(color: AppTheme.mustardBrown)),
+              icon: const Icon(Icons.mail_outline, size: 20),
+              label: const Text('Continue with Email'),
               onPressed: () => setState(() {
                 _showEmailInput = true;
                 _showPhoneInput = false;
               }),
-            ),
-
-            const SizedBox(height: 12),
-
-            // Quick 1-tap dummy login pill
-            Center(
-              child: ActionChip(
-                avatar: const Icon(Icons.bolt, size: 16, color: Colors.amber),
-                label: const Text('1-Tap Dummy Login (test@privchat.app)', style: TextStyle(fontSize: 12)),
-                onPressed: _busy ? null : () => _signInWithEmail(dummyEmail: 'test@privchat.app', dummyPass: 'Password123!'),
-              ),
             ),
           ] else if (_showPhoneInput) ...[
             // Phone input flow
@@ -572,7 +561,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               autofocus: true,
               decoration: const InputDecoration(
                 labelText: 'Email address',
-                hintText: 'e.g. test@privchat.app or user@mail.com',
+                hintText: 'name@example.com',
                 prefixIcon: Icon(Icons.email_outlined),
                 border: OutlineInputBorder(),
               ),
@@ -582,8 +571,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               controller: _password,
               obscureText: true,
               decoration: const InputDecoration(
-                labelText: 'Password (Optional)',
-                hintText: 'Default: Password123!',
+                labelText: 'Password',
                 prefixIcon: Icon(Icons.lock_outline),
                 border: OutlineInputBorder(),
               ),
@@ -596,16 +584,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 minimumSize: const Size.fromHeight(48),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              onPressed: _busy ? null : () => _signInWithEmail(),
+              onPressed: _busy ? null : _signInWithEmail,
               child: _busy
                   ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Continue with Email'),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.flash_on, size: 16),
-              label: const Text('Fill & Sign in with test@privchat.app'),
-              onPressed: _busy ? null : () => _signInWithEmail(dummyEmail: 'test@privchat.app', dummyPass: 'Password123!'),
+                  : const Text('Sign In / Register'),
             ),
             const SizedBox(height: 8),
             TextButton(

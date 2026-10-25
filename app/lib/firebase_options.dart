@@ -50,6 +50,7 @@ class DefaultFirebaseOptions {
     appId: '1:315683507801:android:3695e72ece00817478eb48',
     messagingSenderId: '315683507801',
     projectId: 'privchat-messenger-2026',
+    databaseURL: 'https://privchat-messenger-2026-default-rtdb.firebaseio.com',
     storageBucket: 'privchat-messenger-2026.firebasestorage.app',
   );
 
@@ -58,6 +59,7 @@ class DefaultFirebaseOptions {
     appId: '1:315683507801:ios:6c24d21139d42d5e78eb48',
     messagingSenderId: '315683507801',
     projectId: 'privchat-messenger-2026',
+    databaseURL: 'https://privchat-messenger-2026-default-rtdb.firebaseio.com',
     storageBucket: 'privchat-messenger-2026.firebasestorage.app',
     iosBundleId: 'app.privchat',
   );

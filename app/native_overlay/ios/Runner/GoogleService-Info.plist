@@ -20,6 +20,8 @@
 	<string>privchat-messenger-2026</string>
 	<key>STORAGE_BUCKET</key>
 	<string>privchat-messenger-2026.firebasestorage.app</string>
+	<key>DATABASE_URL</key>
+	<string>https://privchat-messenger-2026-default-rtdb.firebaseio.com</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>

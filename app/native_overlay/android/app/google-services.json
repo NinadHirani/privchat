@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "315683507801",
+    "firebase_url": "https://privchat-messenger-2026-default-rtdb.firebaseio.com",
     "project_id": "privchat-messenger-2026",
     "storage_bucket": "privchat-messenger-2026.firebasestorage.app"
   },
